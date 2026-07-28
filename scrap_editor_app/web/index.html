@@ -14,6 +14,7 @@
       <div class="brand"><span class="brand-mark">SM</span><span><strong>SCRAP MECHANIC</strong><small>SAVE EDITOR</small></span></div>
       <nav class="main-nav" aria-label="Editor pages">
         <button data-view="saves"><span>▣</span>Load save</button>
+        <button data-view="backups"><span>↶</span>Backups</button>
         <button class="active" data-view="inventory"><span>▦</span>Inventory</button>
         <button data-view="world"><span>♥</span>Player & world</button>
         <button data-view="unlocks"><span>★</span>Quests & unlocks</button>
@@ -28,22 +29,42 @@
         <div><div class="eyebrow" id="pageEyebrow">PLAYER STORAGE</div><h1 id="pageTitle">Backpack</h1></div>
         <div class="top-actions">
           <span id="dirtyBadge" class="dirty-badge hidden">Unsaved changes</span>
-          <button id="saveCopyBtn" class="button ghost">Save a copy</button>
+          <button id="createBackupBtn" class="button ghost">Create backup</button>
+          <button id="saveCopyBtn" class="button ghost">Archive edited copy</button>
           <button id="overwriteBtn" class="button primary">Save to game</button>
         </div>
       </header>
 
       <section id="emptyState" class="empty-state hidden">
-        <div class="empty-icon">▣</div><h2>No Survival save loaded</h2>
-        <p>Choose a detected save on the left. Scrap Mechanic should be closed before writing changes.</p>
+        <div class="empty-icon">▣</div><h2>No world save loaded</h2>
+        <p>Choose a Survival, Creative/Sandbox, or Custom Game world. Scrap Mechanic should be closed before writing changes.</p>
       </section>
 
       <section id="savesView" class="view hidden">
         <div class="save-picker-heading panel">
-          <div><div class="eyebrow">SURVIVAL WORLDS</div><h2>Choose a save to edit</h2><p>Detected from every Scrap Mechanic user folder. Close the game before saving changes.</p></div>
+          <div><div class="eyebrow">ALL WORLD MODES</div><h2>Choose a save to edit</h2><p>Survival, Creative/Sandbox, and Custom Game databases detected from every local Scrap Mechanic user.</p></div>
           <button id="browseSaveBtn" class="button primary">Browse for a save</button>
         </div>
         <div id="savePickerGrid" class="save-picker-grid"></div>
+      </section>
+
+      <section id="backupsView" class="view hidden">
+        <div class="backup-layout">
+          <article class="panel backup-hero">
+            <div><div class="eyebrow">EXTERNAL ARCHIVE</div><h2>Backup manager</h2><p>Backups are stored outside Scrap Mechanic's <code>User\...\Save</code> folders, so the game cannot list them as playable worlds.</p></div>
+            <div class="backup-folder-row"><code id="backupRootPath"></code><button id="openBackupFolderBtn" class="button ghost">Open folder</button></div>
+            <button id="backupCurrentBtn" class="button primary">Back up loaded world now</button>
+          </article>
+          <article class="panel">
+            <div class="panel-title"><div><div class="eyebrow">CHALLENGE MODE</div><h2>Challenge progress files</h2></div></div>
+            <p class="world-card-note">Challenge Mode stores per-pack progress and saved challenge creations as JSON, not as an editable world database. These files can be archived and safely restored here.</p>
+            <div id="challengeProgressList" class="backup-list"></div>
+          </article>
+          <article class="panel backup-archive-panel">
+            <div class="panel-title"><div><div class="eyebrow">VERSION HISTORY</div><h2 id="backupArchiveCount">Backups</h2></div><button id="refreshBackupsBtn" class="button ghost">Refresh</button></div>
+            <div id="backupArchiveList" class="backup-list"></div>
+          </article>
+        </div>
       </section>
 
       <section id="inventoryView" class="view inventory-view">
@@ -204,7 +225,7 @@
             </div>
             <div class="form-actions"><span>Changes stay in memory until you save a copy or overwrite.</span><button class="button primary" type="submit">Apply settings</button></div>
           </form>
-          <article class="panel safety-card"><div class="eyebrow">SAFE WRITES</div><h2>Backups are automatic</h2><p>“Save to game” creates a timestamped <code>.bak</code> beside the original database before replacing it. Keep Scrap Mechanic closed while saving.</p></article>
+          <article class="panel safety-card"><div class="eyebrow">SAFE WRITES</div><h2>External backups are automatic</h2><p>“Save to game” first archives the untouched database under <code>%LOCALAPPDATA%\ScrapMechanicSaveEditor\Backups</code>. No backup is placed in the game's save list.</p></article>
         </div>
       </section>
     </main>

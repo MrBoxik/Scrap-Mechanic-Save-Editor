@@ -1,9 +1,9 @@
 # Scrap Mechanic Save Editor
 
-A polished offline desktop editor for Scrap Mechanic Survival saves. It combines a Python save engine with an HTML/CSS interface embedded directly in a Windows application—there is no website, localhost server, browser window, account, or save upload.
+A polished offline desktop editor for Scrap Mechanic Survival, Creative/Sandbox, and Custom Game saves. It combines a Python save engine with an HTML/CSS interface embedded directly in a Windows application—there is no website, localhost server, browser window, account, or save upload.
 
 > [!IMPORTANT]
-> Close Scrap Mechanic before editing and keep a backup. The editor creates a timestamped `.bak` before overwriting a save, but experimenting on a copy is still the safest workflow.
+> Close Scrap Mechanic before editing. The editor automatically keeps timestamped versions under `%LOCALAPPDATA%\ScrapMechanicSaveEditor\Backups`, outside every game save folder.
 
 ## Download
 
@@ -11,7 +11,10 @@ Download the latest `ScrapMechanicSaveEditor.exe` from [Releases](../../releases
 
 ## Highlights
 
-- Automatically discovers Survival saves for every local Scrap Mechanic user.
+- Automatically discovers Survival, Creative/Sandbox, and Custom Game databases for every local Scrap Mechanic user.
+- Edits validated Creative/Sandbox and Custom Game inventories, containers, session settings, and any recognized state channels actually present in the database.
+- Keeps automatic, manual, and edited-copy versions outside the game save folders, with a built-in history and safe restore.
+- Detects and archives per-pack Challenge Mode progress files and saved challenge creations.
 - Edits player health, maximum health, oxygen, and maximum oxygen.
 - Shows player Steam ID, inventory container, carry container, consciousness, revival item, and perks.
 - Cancels active raids stored by the Survival raid manager.
@@ -29,7 +32,7 @@ Download the latest `ScrapMechanicSaveEditor.exe` from [Releases](../../releases
 - Provides map search, destination filters, hover details, wheel zoom, buttons, fit-to-view, and drag panning.
 - Edits difficulty and existing multiplayer/physics settings; advanced mode also exposes seed, flags, and game tick.
 - Validates SQLite integrity before loading and after saving.
-- Saves a copy or overwrites with an automatic timestamped backup.
+- Archives edited copies or overwrites with an automatic external timestamped backup.
 - Creates a separate timestamped backup before writing the global clothing `unlock` profile.
 
 The full breakdown of known save systems and intentionally read-only fields is in [Editable save data](docs/EDITABLE_SAVE_DATA.md).
@@ -37,9 +40,9 @@ The full breakdown of known save systems and intentionally read-only fields is i
 ## Safe workflow
 
 1. Exit Scrap Mechanic completely.
-2. Open the editor and select a Survival save.
+2. Open the editor and select a detected world save.
 3. Make the changes you want.
-4. Use **Save a Copy** for experimental changes.
+4. Use **Archive edited copy** for experimental changes.
 5. Test the edited save in-game.
 6. Use **Save to Game** only after confirming it works.
 
@@ -77,7 +80,11 @@ The result is `dist\ScrapMechanicSaveEditor.exe`. A faster-starting folder build
 
 ## Technical notes
 
-Survival saves are SQLite databases containing both ordinary tables and compressed, binary Lua state. The editor parses only structures it can validate, preserves unknown fields and keys, and updates exact source rows instead of rebuilding the database.
+World saves are SQLite databases containing ordinary tables and, depending on the mode, compressed binary Lua state. The editor detects capabilities from each database, preserves unknown fields and keys, and updates exact source rows instead of rebuilding the database. Survival-only controls are disabled for Creative/Sandbox and Custom Game worlds that do not contain those managers.
+
+Challenge Mode does not use a normal persistent world database. Its per-pack JSON under the user's `Progress` directory contains engine-checksummed challenge records and saved creations. Version 4.4 detects, externally backs up, and safely restores those files; it does not fabricate completion records or expose Survival-only editors for them.
+
+All world and Challenge progress archives are stored below `%LOCALAPPDATA%\ScrapMechanicSaveEditor\Backups`. Restoring a version first archives the current target again, giving the restore operation its own recovery point. These archives are never placed below `User\...\Save`, so Scrap Mechanic will not list them as worlds.
 
 Offline quest completion updates the quest manager's completed list, removes active quest objects and tracked references, and unlocks known schematic rewards. It cannot replay live scripted world events, Steam achievements, physical item rewards, or automatic next-quest activation. Those limitations are shown beside the quest controls.
 

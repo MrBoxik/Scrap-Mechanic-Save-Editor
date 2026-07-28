@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Safe, dependency-free Scrap Mechanic Survival save editor.
+"""Safe, dependency-free Scrap Mechanic save editor.
 
 The database format is SQLite, but many table payloads are proprietary binary
 blobs.  This program edits only the fields whose layouts have been validated:
@@ -180,12 +180,40 @@ def default_save_root() -> Path:
     return base / "Axolot Games" / "Scrap Mechanic" / "User"
 
 
-def scan_survival_saves() -> list[Path]:
+def classify_save_path(path: str | os.PathLike[str]) -> str:
+    """Classify an ordinary Scrap Mechanic world database by its save folder."""
+    resolved = Path(path).resolve()
+    parent = resolved.parent.name.casefold()
+    if parent == "survival":
+        return "survival"
+    if parent == "custom":
+        return "custom"
+    if parent == "save":
+        return "creative"
+    return "unknown"
+
+
+def scan_game_saves() -> list[tuple[Path, str]]:
+    """Find world databases without descending into editor backup folders."""
     root = default_save_root()
     if not root.is_dir():
         return []
-    saves = [path for path in root.glob("User_*/Save/Survival/*.db") if path.is_file()]
-    return sorted(saves, key=lambda path: path.stat().st_mtime, reverse=True)
+    found: dict[str, tuple[Path, str]] = {}
+    patterns = (
+        ("User_*/Save/Survival/*.db", "survival"),
+        ("User_*/Save/Custom/*.db", "custom"),
+        ("User_*/Save/*.db", "creative"),
+    )
+    for pattern, mode in patterns:
+        for path in root.glob(pattern):
+            if path.is_file():
+                found[str(path.resolve()).casefold()] = (path.resolve(), mode)
+    return sorted(found.values(), key=lambda item: item[0].stat().st_mtime, reverse=True)
+
+
+def scan_survival_saves() -> list[Path]:
+    """Backward-compatible Survival-only scanner used by the legacy UI."""
+    return [path for path, mode in scan_game_saves() if mode == "survival"]
 
 
 @dataclass
@@ -583,6 +611,7 @@ class LuaStorageBlock:
 class SaveData:
     def __init__(self, path: str | os.PathLike[str]) -> None:
         self.path = Path(path).resolve()
+        self.mode = classify_save_path(self.path)
         self.game: dict[str, int] = {}
         self.original_game: dict[str, int] = {}
         self.settings: SettingsBlock | None = None
@@ -604,6 +633,8 @@ class SaveData:
         self.table_counts: dict[str, int] = {}
         self.integrity = ""
         self._load()
+        if self.mode == "unknown":
+            self.mode = "survival" if self.terrain_grid or self.quest_state else "creative"
 
     @staticmethod
     def _readonly_connection(path: Path) -> sqlite3.Connection:
@@ -999,7 +1030,12 @@ class SaveData:
         self.settings.values["Multiplayer"] = multiplayer
         self.settings.values["PhysicsQuality"] = physics_quality
 
-    def save_copy(self, destination: str | os.PathLike[str], overwrite_source: bool = False) -> tuple[Path, Path | None]:
+    def save_copy(
+        self,
+        destination: str | os.PathLike[str],
+        overwrite_source: bool = False,
+        create_adjacent_backup: bool = True,
+    ) -> tuple[Path, Path | None]:
         destination_path = Path(destination).resolve()
         same_path = destination_path == self.path
         if same_path and not overwrite_source:
@@ -1009,7 +1045,7 @@ class SaveData:
 
         destination_path.parent.mkdir(parents=True, exist_ok=True)
         backup_path: Path | None = None
-        if same_path:
+        if same_path and create_adjacent_backup:
             stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
             backup_path = self.path.with_name(f"{self.path.name}.{stamp}.bak")
             shutil.copy2(self.path, backup_path)
@@ -1086,8 +1122,16 @@ class SaveData:
         return destination_path, backup_path
 
     def summary(self) -> dict[str, Any]:
+        mode_labels = {
+            "survival": "Survival",
+            "creative": "Creative / Sandbox",
+            "custom": "Custom Game",
+            "unknown": "World",
+        }
         return {
             "path": str(self.path),
+            "mode": self.mode,
+            "mode_label": mode_labels.get(self.mode, "World"),
             "game": dict(self.game),
             "settings": dict(self.settings.values) if self.settings else None,
             "inventory_container_id": self.inventory.container_id if self.inventory else None,
@@ -1119,6 +1163,19 @@ class SaveData:
             } if self.terrain_grid else None,
             "terrain_error": self.terrain_error or None,
             "integrity": self.integrity,
+            "capabilities": {
+                "inventory": self.inventory is not None,
+                "settings": self.settings is not None,
+                "playerStatus": bool(self.player_states),
+                "raids": self.raid_state is not None,
+                "progression": self.progression_state is not None,
+                "quests": self.quest_state is not None,
+                "recipes": self.recipe_state is not None,
+                "logs": self.log_state is not None,
+                "time": self.time_state is not None,
+                "map": self.terrain_grid is not None,
+                "clothing": bool(self.players),
+            },
         }
 
 

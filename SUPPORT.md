@@ -4,7 +4,7 @@
 
 1. Close Scrap Mechanic and restart the editor.
 2. Confirm that you are using the newest release.
-3. Try **Save a Copy** rather than overwriting the original.
+3. Try **Archive edited copy** rather than overwriting the original.
 4. Check that the save still opens normally in Scrap Mechanic without edits.
 5. Read `%LOCALAPPDATA%\ScrapMechanicSaveEditor\editor.log` for the latest error.
 

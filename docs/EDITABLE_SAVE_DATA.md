@@ -1,7 +1,7 @@
 # Editable save data
 
-This document records what version 4.3.0 can safely edit and what has been found
-in the current Scrap Mechanic Survival save format.
+This document records what version 4.4.0 can safely edit across the current
+Scrap Mechanic world modes.
 
 ## Editable now
 
@@ -18,6 +18,19 @@ in the current Scrap Mechanic Survival save format.
 | Game settings | Difficulty plus existing multiplayer and physics quality values | Existing typed values are retained unless explicitly changed |
 | Advanced game data | Flags, world seed, and game tick | Locked behind advanced mode because extreme values can break a world |
 | Clothing profile | Individual or all 253 named customizations | The global per-user file is checksum-verified and backed up before atomic replacement |
+
+## Mode support
+
+| Mode | Persistent location | Supported operations |
+| --- | --- | --- |
+| Survival | `User_<SteamId>\Save\Survival\*.db` | All validated inventory, player/world, progression, unlock, settings, and terrain tools listed above |
+| Creative / Sandbox | `User_<SteamId>\Save\*.db` | Player inventory/hotbar, validated containers, session settings, Game fields, and recognized state channels such as time when present |
+| Custom Game | `User_<SteamId>\Save\Custom\*.db` | The same schema-driven inventory, container, settings, and recognized state operations that the individual database exposes |
+| Challenge Mode | `User_<SteamId>\Progress\<pack UUID>.json` | External versioned backup and safe restore of engine-created progress/saved-creation records |
+
+Challenge progress is not a normal world database. The game engine owns its
+checksums and completion-time state, so the editor does not invent challenge
+completion entries or apply Survival inventory structures to it.
 
 Player state also exposes the Steam ID, inventory container ID, carry container
 ID, consciousness, revival-item state, and perk count for inspection. Those
@@ -60,3 +73,7 @@ rows. The decoder preserves numeric and string keys, unknown table fields, array
 offsets, and supported numeric types. Saving replaces only records marked dirty
 and then runs SQLite integrity checks. A valid SQLite database can still contain
 values the game does not accept, so backups remain essential.
+
+The desktop application stores automatic, manual, edited-copy, and pre-restore
+versions under `%LOCALAPPDATA%\ScrapMechanicSaveEditor\Backups`. Restore is
+atomic and first makes another recoverable version of the file being replaced.

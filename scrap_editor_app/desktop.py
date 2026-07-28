@@ -59,6 +59,12 @@ class DesktopBridge:
                     file_types=("Scrap Mechanic saves (*.db)", "All files (*.*)"),
                 ) if self._window is not None else None
                 return {"ok": True, "path": selection[0] if selection else None}
+            if method == "open-backup-folder":
+                folder = self._editor.backups.root
+                folder.mkdir(parents=True, exist_ok=True)
+                if sys.platform == "win32":
+                    os.startfile(folder)  # type: ignore[attr-defined]
+                return {"ok": True, "path": str(folder)}
             result = self._editor.dispatch(str(method), payload or {})
             return {"ok": True, **result}
         except Exception as exc:

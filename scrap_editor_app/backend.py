@@ -16,7 +16,8 @@ from scrap_mechanic_save_editor import (
     SaveData,
     default_save_root,
     find_game_root,
-    scan_survival_saves,
+    load_game_json,
+    scan_game_saves,
 )
 from terrain_map import LuaArray, TerrainRenderer, load_terrain_tile_names
 from .game_unlocks import (
@@ -26,6 +27,7 @@ from .game_unlocks import (
     load_quest_catalog,
     load_recipe_catalog,
 )
+from .backup_manager import BackupManager
 
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
@@ -88,6 +90,7 @@ class EditorApi:
         self.features: list[MapFeature] = []
         self.map_path: Path | None = None
         self.customization_profile: CustomizationUnlockProfile | None = None
+        self.backups = BackupManager()
 
     def dispatch(self, method: str, payload: dict[str, Any]) -> dict[str, Any]:
         handler = getattr(self, method.replace("-", "_"), None)
@@ -99,17 +102,51 @@ class EditorApi:
 
     def status(self, _payload: dict[str, Any]) -> dict[str, Any]:
         saves = []
-        for path in scan_survival_saves():
+        mode_labels = {"survival": "Survival", "creative": "Creative / Sandbox", "custom": "Custom Game"}
+        for path, mode in scan_game_saves():
             stat = path.stat()
-            saves.append({"path": str(path), "name": path.stem, "modified": stat.st_mtime, "size": stat.st_size})
+            saves.append({
+                "path": str(path), "name": path.stem, "modified": stat.st_mtime, "size": stat.st_size,
+                "mode": mode, "modeLabel": mode_labels.get(mode, "World"),
+            })
         return {
-            "version": "4.3.0",
+            "version": "4.4.0",
             "gameRoot": str(self.game_root) if self.game_root else None,
             "catalogCount": len(self.catalog.items),
             "catalogError": self.catalog.load_error or None,
             "saves": saves,
+            "backupRoot": str(self.backups.root),
+            "challengeProgress": self._challenge_progress_files(),
             "current": self._save_summary() if self.save else None,
         }
+
+    def _challenge_progress_files(self) -> list[dict[str, Any]]:
+        pack_names: dict[str, str] = {}
+        if self.game_root:
+            challenge_root = self.game_root / "Challenges"
+            for description in challenge_root.glob("*/description.json"):
+                try:
+                    data = load_game_json(description)
+                    pack_names[str(data.get("localId") or "").casefold()] = str(data.get("name") or description.parent.name)
+                except (OSError, ValueError, TypeError):
+                    continue
+        result = []
+        root = default_save_root()
+        for path in root.glob("User_*/Progress/*.json") if root.is_dir() else []:
+            try:
+                data = load_game_json(path)
+                stat = path.stat()
+                result.append({
+                    "path": str(path.resolve()),
+                    "name": pack_names.get(path.stem.casefold(), path.stem),
+                    "packId": path.stem,
+                    "records": len(data) if isinstance(data, dict) else 0,
+                    "modified": stat.st_mtime,
+                    "size": stat.st_size,
+                })
+            except (OSError, ValueError, TypeError):
+                continue
+        return sorted(result, key=lambda item: float(item["modified"]), reverse=True)
 
     def load_save(self, payload: dict[str, Any]) -> dict[str, Any]:
         path = Path(str(payload.get("path") or "")).expanduser().resolve()
@@ -134,7 +171,7 @@ class EditorApi:
 
     def _require_save(self) -> SaveData:
         if self.save is None:
-            raise RuntimeError("Load a Survival save first")
+            raise RuntimeError("Load a Scrap Mechanic world save first")
         return self.save
 
     def _save_summary(self) -> dict[str, Any]:
@@ -424,6 +461,7 @@ class EditorApi:
         logs = [{**definition, "unlocked": definition["uuid"] in unlocked_logs} for definition in self.log_catalog]
         clothes = [{**definition, "unlocked": definition["uuid"] in unlocked_clothes} for definition in self.customization_catalog]
         return {
+            "capabilities": save.summary()["capabilities"],
             "quests": quests,
             "recipes": recipes,
             "logs": logs,
@@ -514,22 +552,83 @@ class EditorApi:
 
     def save_copy(self, payload: dict[str, Any]) -> dict[str, Any]:
         save = self._require_save()
-        destination = str(payload.get("path") or save.path.with_name(f"{save.path.stem}_edited.db"))
-        written, backup = save.save_copy(destination)
-        return {"path": str(written), "backup": str(backup) if backup else None}
+        record = self.backups.archive(
+            save.path,
+            category=save.summary()["mode_label"],
+            kind="edited-copy",
+            label=f"Edited copy · {save.path.stem}",
+            producer=lambda destination: save.save_copy(destination),
+        )
+        return {"path": record["path"], "backup": record, "backupRoot": str(self.backups.root)}
+
+    def create_backup(self, _payload: dict[str, Any]) -> dict[str, Any]:
+        save = self._require_save()
+        record = self.backups.archive(
+            save.path,
+            category=save.summary()["mode_label"],
+            kind="manual",
+            label=save.path.stem,
+        )
+        return {"backup": record, "state": self.backup_state({})}
+
+    def create_challenge_backup(self, payload: dict[str, Any]) -> dict[str, Any]:
+        requested = Path(str(payload.get("path") or "")).expanduser().resolve()
+        available = {Path(item["path"]).resolve(): item for item in self._challenge_progress_files()}
+        if requested not in available:
+            raise ValueError("Challenge progress file was not detected")
+        entry = available[requested]
+        record = self.backups.archive(
+            requested,
+            category="Challenge Progress",
+            kind="manual",
+            label=str(entry["name"]),
+        )
+        return {"backup": record, "state": self.backup_state({})}
+
+    def backup_state(self, _payload: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "root": str(self.backups.root),
+            "backups": self.backups.list(),
+            "challengeProgress": self._challenge_progress_files(),
+        }
+
+    def restore_backup(self, payload: dict[str, Any]) -> dict[str, Any]:
+        if payload.get("confirmation") != "RESTORE":
+            raise ValueError("Restore confirmation was not supplied")
+        record, safety = self.backups.restore(str(payload.get("id") or ""))
+        target = Path(record["sourcePath"]).resolve()
+        current = None
+        containers = None
+        if self.save and target == self.save.path:
+            self.save = SaveData(target)
+            self.customization_profile = self._load_customization_profile(self.save)
+            self.features = self._build_features(self.save)
+            self.map_path = None
+            current = self._save_summary()
+            containers = self._containers()
+        return {
+            "restored": record, "safetyBackup": safety, "state": self.backup_state({}),
+            "current": current, "containers": containers,
+        }
 
     def overwrite(self, payload: dict[str, Any]) -> dict[str, Any]:
         save = self._require_save()
         if payload.get("confirmation") != "OVERWRITE":
             raise ValueError("Overwrite confirmation was not supplied")
-        written, backup = save.save_copy(save.path, overwrite_source=True)
+        backup = self.backups.archive(
+            save.path,
+            category=save.summary()["mode_label"],
+            kind="automatic",
+            label=f"Before save · {save.path.stem}",
+        )
+        written, _adjacent = save.save_copy(save.path, overwrite_source=True, create_adjacent_backup=False)
         self.save = SaveData(written)
         self.customization_profile = self._load_customization_profile(self.save)
         self.features = self._build_features(self.save)
         self.map_path = None
         return {
             "path": str(written),
-            "backup": str(backup) if backup else None,
+            "backup": backup,
             "current": self._save_summary(),
             "containers": self._containers(),
         }

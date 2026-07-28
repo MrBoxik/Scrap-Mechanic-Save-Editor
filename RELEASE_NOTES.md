@@ -1,9 +1,29 @@
-# Scrap Mechanic Save Editor 4.3.0
+# Scrap Mechanic Save Editor 4.4.0
 
-Version 4.3 adds a complete progression and unlock-management workspace based
-on the schemas in Scrap Mechanic 1.0.0.867.
+Version 4.4 adds external versioned backups and capability-aware support for
+the other persistent Scrap Mechanic world modes.
 
-## New
+## Backups and restore
+
+- Stores backups under `%LOCALAPPDATA%\ScrapMechanicSaveEditor\Backups`, never inside a Scrap Mechanic save folder.
+- Automatically archives the untouched database before **Save to game**.
+- Adds **Create backup** for unlimited manual snapshots.
+- Changes **Save a Copy** into **Archive edited copy**, also outside the game save list.
+- Adds a backup manager with timestamps, source paths, type, size, open-folder, refresh, and restore controls.
+- Creates a fresh pre-restore safety backup before replacing a world or Challenge progress file.
+- Validates SQLite archives and refuses to copy or restore a database while an active SQLite journal exists.
+
+## World modes
+
+- Discovers Survival worlds under `Save\Survival`.
+- Discovers Creative/Sandbox worlds directly under `Save`.
+- Discovers Custom Game worlds under `Save\Custom`.
+- Detects capabilities from the loaded database and disables unavailable mode-specific controls.
+- Supports the real 30-slot Creative/Sandbox inventory and its validated containers/settings.
+- Keeps Survival quests, raids, progression, recipes, logs, and terrain controls limited to saves that actually contain them.
+- Detects Challenge Mode per-pack JSON under `Progress`, displays its saved-record count, and supports external backup/restore.
+
+## Existing progression tools
 
 - Lists all 46 quests with their real localized titles, type, ID, status, and known rewards.
 - Marks one quest or every installed quest complete.
@@ -24,6 +44,5 @@ saved quest manager, removes active quest objects, clears tracked references,
 and unlocks known schematic rewards. It does not replay physical item rewards,
 world events, achievements, dialogs, or automatic next-quest activation.
 
-Close Scrap Mechanic before editing. Use **Save a Copy** for experimental world
-changes. Clothing is global across worlds and has its own **Apply to profile**
-button with an automatic timestamped backup.
+Close Scrap Mechanic before editing. Clothing is global across worlds and has
+its own **Apply to profile** button and checksum-aware backup behavior.

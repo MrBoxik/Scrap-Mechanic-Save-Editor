@@ -27,7 +27,9 @@ def exercise(window: webview.Window, save_path: str) -> None:
     window.evaluate_js(f"loadSave({json.dumps(save_path)}); true")
     for second in range(45):
         time.sleep(1)
-        if second == 20:
+        if second == 15:
+            window.evaluate_js('switchView("backups"); true')
+        if second == 22:
             window.evaluate_js('switchView("unlocks"); true')
         progress = window.evaluate_js(
             "({offset:state.catalog.offset,total:state.catalog.total,"
@@ -35,6 +37,8 @@ def exercise(window: webview.Window, save_path: str) -> None:
             "quests:state.unlocks.data?.quests?.length||0,"
             "recipes:state.unlocks.data?.recipes?.length||0,"
             "clothing:state.unlocks.data?.clothing?.length||0,"
+            "backupRoot:state.backups?.root||'',"
+            "challengeFiles:state.backups?.challengeProgress?.length||0,"
             "unlockRows:document.querySelectorAll('.unlock-row').length})"
         )
         window.set_title(

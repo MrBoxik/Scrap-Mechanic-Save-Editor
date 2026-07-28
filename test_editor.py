@@ -9,7 +9,8 @@ import sqlite3
 import tempfile
 import unittest
 
-from scrap_mechanic_save_editor import ItemCatalog, MapRenderer, SaveData, find_game_root
+from scrap_mechanic_save_editor import ItemCatalog, MapRenderer, SaveData, find_game_root, scan_game_saves
+from scrap_editor_app.backup_manager import BackupManager
 from scrap_editor_app.game_unlocks import (
     CustomizationUnlockProfile,
     load_customization_catalog,
@@ -36,7 +37,67 @@ def find_test_save() -> Path:
 SAVE = find_test_save()
 
 
+def find_creative_save() -> Path:
+    return next((path for path, mode in scan_game_saves() if mode == "creative"), Path("__missing_creative_save__.db"))
+
+
+CREATIVE_SAVE = find_creative_save()
+
+
 class EditorTests(unittest.TestCase):
+    @unittest.skipUnless(CREATIVE_SAVE.is_file(), "local Creative/Sandbox save is unavailable")
+    def test_creative_sandbox_inventory_and_capabilities(self) -> None:
+        save = SaveData(CREATIVE_SAVE)
+        summary = save.summary()
+        self.assertEqual(summary["mode"], "creative")
+        self.assertEqual(summary["inventory_slots"], 30)
+        self.assertTrue(summary["capabilities"]["inventory"])
+        self.assertTrue(summary["capabilities"]["settings"])
+        self.assertFalse(summary["capabilities"]["quests"])
+        self.assertFalse(summary["capabilities"]["map"])
+        assert save.inventory is not None
+        save.inventory.set_slot(1, "3440440b-d362-4473-aa03-b7c41e1fe7ad", 12)
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "Save" / "creative-edited.db"
+            save.save_copy(output)
+            loaded = SaveData(output)
+            self.assertEqual(loaded.mode, "creative")
+            self.assertEqual(loaded.inventory.slots[0].quantity, 12)  # type: ignore[union-attr]
+            self.assertEqual(loaded.integrity, "ok")
+
+    @unittest.skipUnless(SAVE.is_file(), "local test save is unavailable")
+    def test_external_backup_versions_and_safe_restore(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "game" / "Save" / "Survival" / "world.db"
+            source.parent.mkdir(parents=True)
+            source.write_bytes(SAVE.read_bytes())
+            manager = BackupManager(root / "external-backups")
+            first = manager.archive(source, category="Survival", kind="manual")
+            second = manager.archive(source, category="Survival", kind="manual")
+            self.assertNotEqual(first["id"], second["id"])
+            self.assertTrue(Path(first["path"]).is_relative_to(manager.root))
+            original_seed = SaveData(source).game["seed"]
+            edited = SaveData(source)
+            edited.set_game_fields(edited.game["flags"], original_seed + 1, edited.game["gametick"])
+            edited.save_copy(source, overwrite_source=True, create_adjacent_backup=False)
+            self.assertEqual(SaveData(source).game["seed"], original_seed + 1)
+            restored, safety = manager.restore(first["id"])
+            self.assertEqual(restored["sourcePath"], str(source.resolve()))
+            self.assertIsNotNone(safety)
+            self.assertEqual(SaveData(source).game["seed"], original_seed)
+            self.assertEqual(len(manager.list()), 3)
+            self.assertEqual(list(source.parent.glob("*.bak")), [])
+
+            progress = root / "game" / "Progress" / "pack.json"
+            progress.parent.mkdir(parents=True)
+            progress.write_text('{"level": {"checksum": 1}}', encoding="utf-8")
+            challenge_manager = BackupManager(root / "challenge-backups")
+            challenge = challenge_manager.archive(progress, category="Challenge Progress", kind="manual")
+            progress.write_text('{"changed": true}', encoding="utf-8")
+            challenge_manager.restore(challenge["id"])
+            self.assertEqual(progress.read_text(encoding="utf-8"), '{"level": {"checksum": 1}}')
+
     @unittest.skipUnless(SAVE.is_file(), "local test save is unavailable")
     def test_load_expected_fields(self) -> None:
         save = SaveData(SAVE)

@@ -1,3 +1,3 @@
-"""Local web application for editing Scrap Mechanic Survival saves."""
+"""Offline desktop application for editing Scrap Mechanic saves."""
 
-__version__ = "4.3.0"
+__version__ = "4.4.0"
