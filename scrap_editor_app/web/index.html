@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scrap Mechanic Save Editor</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="layout-fixes.css">
+  <link rel="stylesheet" href="desktop.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">SM</span><span><strong>SCRAP MECHANIC</strong><small>SAVE EDITOR</small></span></div>
+      <nav class="main-nav" aria-label="Editor pages">
+        <button data-view="saves"><span>▣</span>Load save</button>
+        <button class="active" data-view="inventory"><span>▦</span>Inventory</button>
+        <button data-view="world"><span>♥</span>Player & world</button>
+        <button data-view="map"><span>◎</span>World map</button>
+        <button data-view="settings"><span>⚙</span>Settings</button>
+      </nav>
+      <div class="sidebar-foot"><span id="connectionDot" class="status-dot"></span><span id="appStatus">Starting local editor…</span></div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <div><div class="eyebrow" id="pageEyebrow">PLAYER STORAGE</div><h1 id="pageTitle">Backpack</h1></div>
+        <div class="top-actions">
+          <span id="dirtyBadge" class="dirty-badge hidden">Unsaved changes</span>
+          <button id="saveCopyBtn" class="button ghost">Save a copy</button>
+          <button id="overwriteBtn" class="button primary">Save to game</button>
+        </div>
+      </header>
+
+      <section id="emptyState" class="empty-state hidden">
+        <div class="empty-icon">▣</div><h2>No Survival save loaded</h2>
+        <p>Choose a detected save on the left. Scrap Mechanic should be closed before writing changes.</p>
+      </section>
+
+      <section id="savesView" class="view hidden">
+        <div class="save-picker-heading panel">
+          <div><div class="eyebrow">SURVIVAL WORLDS</div><h2>Choose a save to edit</h2><p>Detected from every Scrap Mechanic user folder. Close the game before saving changes.</p></div>
+          <button id="browseSaveBtn" class="button primary">Browse for a save</button>
+        </div>
+        <div id="savePickerGrid" class="save-picker-grid"></div>
+      </section>
+
+      <section id="inventoryView" class="view inventory-view">
+        <div class="inventory-layout">
+          <div class="backpack-column">
+            <article class="backpack-panel">
+              <div class="backpack-heading">
+                <div class="backpack-title"><img class="backpack-game-icon" src="game-ui/gui_inventory_icon_backpack.png" alt=""><span>BACKPACK</span></div>
+                <label class="container-picker">Container <select id="containerSelect"></select></label>
+              </div>
+              <div id="backpackGrid" class="slot-grid backpack-grid" aria-label="Backpack slots"></div>
+              <div class="backpack-help">Click a slot to select it · right-click to change, set quantity, or clear · drag an item here</div>
+            </article>
+            <div class="hotbar-wrap"><div class="eyebrow">HOTBAR</div><div id="hotbarGrid" class="slot-grid hotbar-grid" aria-label="Hotbar slots"></div></div>
+          </div>
+
+          <aside class="catalog-panel">
+            <div class="catalog-head">
+              <div><div class="eyebrow">GAME ITEM CATALOGUE</div><h2>Choose an item</h2></div>
+              <div id="catalogCount" class="catalog-count">0 items</div>
+            </div>
+            <label class="search-box"><span>⌕</span><input id="catalogSearch" type="search" placeholder="Search names, IDs, descriptions…"></label>
+            <div id="categoryTabs" class="category-tabs">
+              <button class="active" data-category="All">All</button><button data-category="Tools">Tools</button>
+              <button data-category="Blocks">Blocks</button><button data-category="Interactive">Interactive</button>
+              <button data-category="Parts">Parts</button><button data-category="Consumable">Consumable</button>
+            </div>
+            <div id="selectedItemBar" class="selected-item-bar"><span>Select a backpack slot, then choose an item.</span><button id="placeItemBtn" disabled>Put in slot</button></div>
+            <div id="catalogGrid" class="catalog-grid"></div>
+            <div class="catalog-loader"><button id="loadAllBtn" class="button ghost">Load every matching item</button><span id="catalogProgress"></span></div>
+            <div id="catalogSentinel"></div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="mapView" class="view hidden">
+        <div class="map-layout">
+          <aside class="map-search-panel">
+            <div class="eyebrow">MAP LOCATIONS</div><h2>Find a destination</h2>
+            <label class="search-box"><span>⌕</span><input id="mapSearch" type="search" placeholder="Quest, warehouse, station…"></label>
+            <div id="mapFilters" class="map-filters">
+              <button class="active" data-kind="Places">All places</button><button data-kind="Player">You</button>
+              <button data-kind="Quest">Quests</button><button data-kind="Station">Stations</button>
+              <button data-kind="Warehouse">Warehouses</button><button data-kind="Packing station">Packing</button>
+              <button data-kind="Lab / dungeon">Labs & dungeons</button><button data-kind="Landmark">Landmarks</button>
+            </div>
+            <div id="mapResultCount" class="map-match-count"></div>
+            <p class="map-hover-help">Hover over a marker to see its name and location.</p>
+          </aside>
+          <div id="mapViewport" class="map-viewport">
+            <div id="mapStage" class="map-stage"><img id="mapImage" alt="Decoded Scrap Mechanic Survival terrain"><div id="mapMarkers" class="map-markers"></div></div>
+            <div class="map-controls"><button id="zoomOut">−</button><strong id="zoomLabel">100%</strong><button id="zoomIn">+</button><button id="fitMap">Fit</button></div>
+            <div id="mapLoading" class="map-loading">Building exact world map…</div>
+            <div id="mapCoords" class="map-coords">Cell —, —</div>
+            <div id="mapTooltip" class="map-tooltip hidden"><div id="mapTooltipKind"></div><strong id="mapTooltipName"></strong><small id="mapTooltipCell"></small></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="worldView" class="view hidden">
+        <div class="world-state-grid">
+          <form id="playerStatusForm" class="panel world-card">
+            <div class="panel-title"><div><div class="eyebrow">PLAYER STATUS</div><h2>Health & oxygen</h2></div><select id="playerStateSelect"></select></div>
+            <div id="playerIdentity" class="world-card-note"></div>
+            <div class="form-grid">
+              <label>Health<input id="playerHp" type="number" min="0" max="10000" step="0.1"></label>
+              <label>Maximum health<input id="playerMaxHp" type="number" min="1" max="10000" step="0.1"></label>
+              <label>Oxygen<input id="playerBreath" type="number" min="0" max="10000" step="0.1"></label>
+              <label>Maximum oxygen<input id="playerMaxBreath" type="number" min="1" max="10000" step="0.1"></label>
+            </div>
+            <div class="check-row"><label><input id="playerConscious" type="checkbox"> Conscious / alive</label><label><input id="playerRevival" type="checkbox"> Has revival item</label></div>
+            <div class="form-actions"><span>Player status is stored separately from the backpack.</span><button class="button primary" type="submit">Apply player status</button></div>
+          </form>
+
+          <article class="panel world-card raid-card">
+            <div class="panel-title"><div><div class="eyebrow">FARM ATTACKS</div><h2>Active raids</h2></div><strong id="raidCount">0</strong></div>
+            <div id="raidList" class="state-list"></div>
+            <button id="clearRaidsBtn" class="button danger-button" type="button">Cancel every active raid</button>
+          </article>
+
+          <form id="progressionForm" class="panel world-card">
+            <div class="panel-title"><div><div class="eyebrow">WORLD PROGRESSION</div><h2>Unlock state</h2></div></div>
+            <div class="form-grid">
+              <label>Seed tier<input id="seedTier" type="number" min="0" max="3"></label>
+              <label>Vault total<input id="vaultTotal" type="number" min="0" max="1000000"></label>
+            </div>
+            <div class="check-row"><label><input id="consoleUnlocked" type="checkbox"> Warehouse console unlocked</label><label><input id="beaconCrafted" type="checkbox"> Beacon crafted</label></div>
+            <div id="progressionInfo" class="world-card-note"></div>
+            <div class="form-actions"><span>Only independent progression values are editable.</span><button class="button primary" type="submit">Apply progression</button></div>
+          </form>
+
+          <article class="panel world-card quest-card">
+            <div class="panel-title"><div><div class="eyebrow">QUEST STATE</div><h2>Active & completed quests</h2></div></div>
+            <p class="world-card-note">Quest entries are shown read-only because completion touches several linked records.</p>
+            <div class="quest-columns"><div><h3>Active</h3><div id="activeQuestList" class="state-list"></div></div><div><h3>Completed</h3><div id="completedQuestList" class="state-list"></div></div></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="settingsView" class="view hidden">
+        <div class="settings-layout">
+          <form id="settingsForm" class="panel settings-form">
+            <div class="panel-title"><div><div class="eyebrow">SURVIVAL RULES</div><h2>Difficulty & session</h2></div></div>
+            <div class="form-grid">
+              <label>Difficulty<select id="difficulty"><option value="0">Easy</option><option value="1">Normal</option></select></label>
+              <label>Multiplayer slots<input id="multiplayer" type="number" min="0" max="3"></label>
+              <label>Physics quality<input id="physicsQuality" type="number" min="0" max="10"></label>
+              <label>World seed<input id="seed" type="number"></label>
+              <label>Game flags<input id="flags" type="number"></label>
+              <label>Game tick<input id="gametick" type="number"></label>
+            </div>
+            <div class="form-actions"><span>Changes stay in memory until you save a copy or overwrite.</span><button class="button primary" type="submit">Apply settings</button></div>
+          </form>
+          <article class="panel safety-card"><div class="eyebrow">SAFE WRITES</div><h2>Backups are automatic</h2><p>“Save to game” creates a timestamped <code>.bak</code> beside the original database before replacing it. Keep Scrap Mechanic closed while saving.</p></article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="contextMenu" class="context-menu hidden"><button data-action="change">Change item</button><button data-action="quantity">Set quantity</button><button data-action="clear" class="danger">Clear slot</button></div>
+  <dialog id="slotDialog"><form id="slotForm"><button type="button" class="dialog-close" data-close-dialog>×</button><div class="eyebrow">EDIT SLOT</div><h2 id="dialogTitle">Slot</h2><div class="dialog-item"><div id="dialogIcon"></div><div><strong id="dialogItemName">Empty</strong><small id="dialogUuid">—</small></div></div><label>Item UUID<input id="dialogUuidInput" autocomplete="off"></label><label>Quantity<input id="dialogQuantity" type="number" min="0" max="65535"></label><div class="dialog-actions"><button type="button" data-close-dialog class="button ghost">Cancel</button><button id="dialogSave" type="submit" class="button primary">Apply</button></div></form></dialog>
+  <div id="toastRegion" class="toast-region" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
