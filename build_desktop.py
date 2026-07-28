@@ -16,7 +16,11 @@ def data_arg(source: Path, target: str) -> str:
     return f"{source}{';' if platform.system() == 'Windows' else ':'}{target}"
 
 
-def build_command(onefile: bool = False) -> list[str]:
+def build_command(
+    onefile: bool = False,
+    dist_dir: Path | None = None,
+    work_dir: Path | None = None,
+) -> list[str]:
     assets = ROOT / "assets"
     command = [
         sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--windowed",
@@ -31,6 +35,10 @@ def build_command(onefile: bool = False) -> list[str]:
         "--hidden-import", "tkinter.ttk", "--hidden-import", "tkinter.filedialog",
         "--hidden-import", "tkinter.messagebox", "--hidden-import", "tkinter.simpledialog",
     ]
+    if dist_dir is not None:
+        command.extend(["--distpath", str(dist_dir)])
+    if work_dir is not None:
+        command.extend(["--workpath", str(work_dir)])
     for package in ("pythonnet", "clr_loader", "proxy_tools"):
         if importlib.util.find_spec(package):
             command.extend(["--collect-submodules", package])
@@ -46,9 +54,11 @@ def build_command(onefile: bool = False) -> list[str]:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build the serverless Scrap Mechanic desktop editor.")
     parser.add_argument("--onefile", action="store_true", help="Build one executable instead of the faster one-folder package.")
+    parser.add_argument("--dist-dir", type=Path, help="Write the packaged application to this directory.")
+    parser.add_argument("--work-dir", type=Path, help="Use this directory for temporary PyInstaller build files.")
     parser.add_argument("--print", action="store_true")
     args = parser.parse_args()
-    command = build_command(args.onefile)
+    command = build_command(args.onefile, args.dist_dir, args.work_dir)
     if args.print:
         print(subprocess.list2cmdline(command))
         return 0

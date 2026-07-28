@@ -110,7 +110,7 @@ class EditorApi:
                 "mode": mode, "modeLabel": mode_labels.get(mode, "World"),
             })
         return {
-            "version": "4.4.0",
+            "version": "4.4.1",
             "gameRoot": str(self.game_root) if self.game_root else None,
             "catalogCount": len(self.catalog.items),
             "catalogError": self.catalog.load_error or None,

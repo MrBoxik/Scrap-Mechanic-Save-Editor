@@ -32,7 +32,7 @@ Download the latest `ScrapMechanicSaveEditor.exe` from [Releases](../../releases
 - Provides map search, destination filters, hover details, wheel zoom, buttons, fit-to-view, and drag panning.
 - Edits difficulty and existing multiplayer/physics settings; advanced mode also exposes seed, flags, and game tick.
 - Validates SQLite integrity before loading and after saving.
-- Archives edited copies or overwrites with an automatic external timestamped backup.
+- Saves edited copies to the external archive or writes to the game with an automatic timestamped backup.
 - Creates a separate timestamped backup before writing the global clothing `unlock` profile.
 
 The full breakdown of known save systems and intentionally read-only fields is in [Editable save data](docs/EDITABLE_SAVE_DATA.md).
@@ -42,9 +42,9 @@ The full breakdown of known save systems and intentionally read-only fields is i
 1. Exit Scrap Mechanic completely.
 2. Open the editor and select a detected world save.
 3. Make the changes you want.
-4. Use **Archive edited copy** for experimental changes.
-5. Test the edited save in-game.
-6. Use **Save to Game** only after confirming it works.
+4. Optionally use **Save edited copy** to keep a checkpoint in the external archive.
+5. Use **Save to game** to write the staged changes to the world.
+6. Start Scrap Mechanic and test the edited save.
 
 ## Run from source
 

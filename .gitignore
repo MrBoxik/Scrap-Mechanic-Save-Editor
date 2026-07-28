@@ -8,6 +8,8 @@ venv/
 
 build/
 dist/
+build-*/
+dist-*/
 *.spec
 
 assets/item-icons/

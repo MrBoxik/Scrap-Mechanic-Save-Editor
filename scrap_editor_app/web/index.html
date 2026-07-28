@@ -11,7 +11,7 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="brand"><span class="brand-mark">SM</span><span><strong>SCRAP MECHANIC</strong><small>SAVE EDITOR</small></span></div>
+      <div class="brand"><img class="brand-mark" src="game-ui/app_icon.ico" alt=""><span><strong>SCRAP MECHANIC</strong><small>SAVE EDITOR</small></span></div>
       <nav class="main-nav" aria-label="Editor pages">
         <button data-view="saves"><span>▣</span>Load save</button>
         <button data-view="backups"><span>↶</span>Backups</button>
@@ -29,9 +29,9 @@
         <div><div class="eyebrow" id="pageEyebrow">PLAYER STORAGE</div><h1 id="pageTitle">Backpack</h1></div>
         <div class="top-actions">
           <span id="dirtyBadge" class="dirty-badge hidden">Unsaved changes</span>
-          <button id="createBackupBtn" class="button ghost">Create backup</button>
-          <button id="saveCopyBtn" class="button ghost">Archive edited copy</button>
-          <button id="overwriteBtn" class="button primary">Save to game</button>
+          <button id="createBackupBtn" class="button ghost" title="Back up the current game file without unsaved editor changes">Back up current save</button>
+          <button id="saveCopyBtn" class="button ghost" title="Store the edited version in the external backup archive without changing the game save">Save edited copy</button>
+          <button id="overwriteBtn" class="button primary" title="Write the staged changes to the game save">Save to game</button>
         </div>
       </header>
 
@@ -51,9 +51,9 @@
       <section id="backupsView" class="view hidden">
         <div class="backup-layout">
           <article class="panel backup-hero">
-            <div><div class="eyebrow">EXTERNAL ARCHIVE</div><h2>Backup manager</h2><p>Backups are stored outside Scrap Mechanic's <code>User\...\Save</code> folders, so the game cannot list them as playable worlds.</p></div>
+            <div><div class="eyebrow">EXTERNAL ARCHIVE</div><h2>External backup location</h2><p>Backups are stored outside Scrap Mechanic's <code>User\...\Save</code> folders, so the game cannot list them as playable worlds.</p></div>
             <div class="backup-folder-row"><code id="backupRootPath"></code><button id="openBackupFolderBtn" class="button ghost">Open folder</button></div>
-            <button id="backupCurrentBtn" class="button primary">Back up loaded world now</button>
+            <div class="backup-action-row"><button id="backupCurrentBtn" class="button primary">Back up current game file</button><small>This captures the file on disk. Unsaved editor changes are not included.</small></div>
           </article>
           <article class="panel">
             <div class="panel-title"><div><div class="eyebrow">CHALLENGE MODE</div><h2>Challenge progress files</h2></div></div>
@@ -76,7 +76,7 @@
                 <label class="container-picker">Container <select id="containerSelect"></select></label>
               </div>
               <div id="backpackGrid" class="slot-grid backpack-grid" aria-label="Backpack slots"></div>
-              <div class="backpack-help">Click a slot to select it · right-click to change, set quantity, or clear · drag an item here</div>
+              <div class="backpack-help">Click to select · right-click to edit or clear · drag an item onto a slot</div>
             </article>
             <div class="hotbar-wrap"><div class="eyebrow">HOTBAR</div><div id="hotbarGrid" class="slot-grid hotbar-grid" aria-label="Hotbar slots"></div></div>
           </div>
@@ -86,13 +86,13 @@
               <div><div class="eyebrow">GAME ITEM CATALOGUE</div><h2>Choose an item</h2></div>
               <div id="catalogCount" class="catalog-count">0 items</div>
             </div>
-            <label class="search-box"><span>⌕</span><input id="catalogSearch" type="search" placeholder="Search names, IDs, descriptions…"></label>
+            <label class="search-box"><span>⌕</span><input id="catalogSearch" type="search" placeholder="Search items or UUIDs…"></label>
             <div id="categoryTabs" class="category-tabs">
               <button class="active" data-category="All">All</button><button data-category="Tools">Tools</button>
               <button data-category="Blocks">Blocks</button><button data-category="Interactive">Interactive</button>
               <button data-category="Parts">Parts</button><button data-category="Consumable">Consumable</button>
             </div>
-            <div id="selectedItemBar" class="selected-item-bar"><span>Select a backpack slot, then choose an item.</span><button id="placeItemBtn" disabled>Put in slot</button></div>
+            <div id="selectedItemBar" class="selected-item-bar"><span>Select a slot and item.</span><button id="placeItemBtn" disabled>Put in slot</button></div>
             <div id="catalogGrid" class="catalog-grid"></div>
             <div class="catalog-loader"><button id="loadAllBtn" class="button ghost">Load every matching item</button><span id="catalogProgress"></span></div>
             <div id="catalogSentinel"></div>
@@ -104,7 +104,7 @@
         <div class="map-layout">
           <aside class="map-search-panel">
             <div class="eyebrow">MAP LOCATIONS</div><h2>Find a destination</h2>
-            <label class="search-box"><span>⌕</span><input id="mapSearch" type="search" placeholder="Quest, warehouse, station…"></label>
+            <label class="search-box"><span>⌕</span><input id="mapSearch" type="search" placeholder="Search map locations…"></label>
             <div id="mapFilters" class="map-filters">
               <button class="active" data-kind="Places">All places</button><button data-kind="Player">You</button>
               <button data-kind="Quest">Quests</button><button data-kind="Station">Stations</button>
@@ -136,7 +136,7 @@
               <label>Maximum oxygen<input id="playerMaxBreath" type="number" min="1" max="10000" step="0.1"></label>
             </div>
             <div class="check-row"><label><input id="playerConscious" type="checkbox"> Conscious / alive</label><label><input id="playerRevival" type="checkbox"> Has revival item</label></div>
-            <div class="form-actions"><span>Player status is stored separately from the backpack.</span><button class="button primary" type="submit">Apply player status</button></div>
+            <div class="form-actions"><span>Player status is stored separately from the backpack.</span><button class="button primary" type="submit">Apply player</button></div>
           </form>
 
           <article class="panel world-card raid-card">
@@ -163,7 +163,7 @@
               <label>Hour (0–23.99)<input id="worldHour" type="number" min="0" max="23.99" step="0.25"></label>
             </div>
             <div class="check-row"><label><input id="worldTimeProgress" type="checkbox"> Time continues normally</label></div>
-            <div class="form-actions"><span>Disable progression to freeze the chosen time.</span><button class="button primary" type="submit">Apply world time</button></div>
+            <div class="form-actions"><span>Turn off “Time continues normally” to freeze the selected time.</span><button class="button primary" type="submit">Apply world time</button></div>
           </form>
 
           <article class="panel world-card quest-card">
@@ -179,7 +179,7 @@
           <div><div class="eyebrow">GAME PROGRESSION</div><h2>Quests, schematics & collections</h2><p>Loaded directly from the installed game data and matched to this save.</p></div>
           <div id="unlockTabs" class="unlock-tabs">
             <button class="active" data-unlock-tab="quests">Quests</button>
-            <button data-unlock-tab="recipes">Craftbot schematics</button>
+            <button data-unlock-tab="recipes">Craftbot</button>
             <button data-unlock-tab="logs">Logbook</button>
             <button data-unlock-tab="clothing">Clothing</button>
           </div>
@@ -219,11 +219,12 @@
               <label>Difficulty<select id="difficulty"><option value="0">Easy</option><option value="1">Normal</option></select></label>
               <label>Multiplayer slots<input id="multiplayer" type="number" min="0" max="3"></label>
               <label>Physics quality<input id="physicsQuality" type="number" min="0" max="10"></label>
+              <div class="advanced-settings-heading"><strong>Advanced values</strong><small>Change these only when you know the exact value you need.</small></div>
               <label>World seed<input id="seed" type="number"></label>
               <label>Game flags<input id="flags" type="number"></label>
               <label>Game tick<input id="gametick" type="number"></label>
             </div>
-            <div class="form-actions"><span>Changes stay in memory until you save a copy or overwrite.</span><button class="button primary" type="submit">Apply settings</button></div>
+            <div class="form-actions"><span>Apply stages changes. Use Save edited copy or Save to game to write them.</span><button class="button primary" type="submit">Apply settings</button></div>
           </form>
           <article class="panel safety-card"><div class="eyebrow">SAFE WRITES</div><h2>External backups are automatic</h2><p>“Save to game” first archives the untouched database under <code>%LOCALAPPDATA%\ScrapMechanicSaveEditor\Backups</code>. No backup is placed in the game's save list.</p></article>
         </div>

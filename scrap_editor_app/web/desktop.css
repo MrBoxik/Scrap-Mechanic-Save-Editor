@@ -670,3 +670,118 @@ select {
   .backup-layout { grid-template-columns: 1fr; }
   .backup-archive-panel { grid-column: auto; }
 }
+
+/* Release polish */
+.brand {
+  min-width: 0;
+  gap: 11px;
+}
+
+.brand-mark {
+  display: block;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  padding: 0;
+  object-fit: cover;
+  border: 1px solid #ffc83d66;
+  border-radius: 12px;
+  background: #24201a;
+  box-shadow: 0 5px 16px #0007;
+}
+
+.brand > span {
+  min-width: 0;
+}
+
+.sidebar-foot {
+  min-width: 0;
+}
+
+#appStatus {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top-actions .button {
+  margin-right: 0;
+  white-space: nowrap;
+}
+
+.category-tabs {
+  flex-wrap: wrap;
+  overflow: visible;
+  padding-bottom: 4px;
+}
+
+.category-tabs button {
+  flex: 0 0 auto;
+}
+
+.backup-action-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.backup-action-row small {
+  max-width: 370px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.advanced-settings-heading {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 4px;
+  margin: 4px 0 -3px;
+  padding: 12px 13px;
+  border-left: 3px solid var(--yellow);
+  border-radius: 7px;
+  background: #ffc83d0b;
+}
+
+.advanced-settings-heading strong {
+  color: #f2d578;
+  font-size: 11px;
+}
+
+.advanced-settings-heading small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.unlock-warning {
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+#backupsView .world-card-note {
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+@media (max-width: 1250px) {
+  .topbar {
+    gap: 18px;
+  }
+
+  .top-actions {
+    gap: 7px;
+  }
+
+  .top-actions .button {
+    padding: 9px 11px;
+  }
+}
+
+@media (max-width: 900px) {
+  .backup-action-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
