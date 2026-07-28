@@ -16,6 +16,7 @@
         <button data-view="saves"><span>▣</span>Load save</button>
         <button class="active" data-view="inventory"><span>▦</span>Inventory</button>
         <button data-view="world"><span>♥</span>Player & world</button>
+        <button data-view="unlocks"><span>★</span>Quests & unlocks</button>
         <button data-view="map"><span>◎</span>World map</button>
         <button data-view="settings"><span>⚙</span>Settings</button>
       </nav>
@@ -134,12 +135,59 @@
             <div class="form-actions"><span>Only independent progression values are editable.</span><button class="button primary" type="submit">Apply progression</button></div>
           </form>
 
+          <form id="worldTimeForm" class="panel world-card">
+            <div class="panel-title"><div><div class="eyebrow">DAY CYCLE</div><h2>World time</h2></div></div>
+            <div class="form-grid">
+              <label>Day<input id="worldDay" type="number" min="0" max="1000000"></label>
+              <label>Hour (0–23.99)<input id="worldHour" type="number" min="0" max="23.99" step="0.25"></label>
+            </div>
+            <div class="check-row"><label><input id="worldTimeProgress" type="checkbox"> Time continues normally</label></div>
+            <div class="form-actions"><span>Disable progression to freeze the chosen time.</span><button class="button primary" type="submit">Apply world time</button></div>
+          </form>
+
           <article class="panel world-card quest-card">
             <div class="panel-title"><div><div class="eyebrow">QUEST STATE</div><h2>Active & completed quests</h2></div></div>
-            <p class="world-card-note">Quest entries are shown read-only because completion touches several linked records.</p>
+            <p class="world-card-note">Use the Quests & unlocks page to inspect all game quests and mark them complete.</p>
             <div class="quest-columns"><div><h3>Active</h3><div id="activeQuestList" class="state-list"></div></div><div><h3>Completed</h3><div id="completedQuestList" class="state-list"></div></div></div>
           </article>
         </div>
+      </section>
+
+      <section id="unlocksView" class="view hidden">
+        <div class="panel unlocks-heading">
+          <div><div class="eyebrow">GAME PROGRESSION</div><h2>Quests, schematics & collections</h2><p>Loaded directly from the installed game data and matched to this save.</p></div>
+          <div id="unlockTabs" class="unlock-tabs">
+            <button class="active" data-unlock-tab="quests">Quests</button>
+            <button data-unlock-tab="recipes">Craftbot schematics</button>
+            <button data-unlock-tab="logs">Logbook</button>
+            <button data-unlock-tab="clothing">Clothing</button>
+          </div>
+        </div>
+
+        <article id="questsUnlockPane" class="panel unlock-pane">
+          <div class="unlock-pane-head"><div><div class="eyebrow">ALL GAME QUESTS</div><h2 id="questUnlockCount">Quests</h2></div><button id="completeAllQuestsBtn" class="button danger-button">Mark every quest complete</button></div>
+          <div class="unlock-toolbar"><label class="search-box"><span>⌕</span><input id="questUnlockSearch" type="search" placeholder="Search quest name or ID…"></label><select id="questStatusFilter"><option value="all">All statuses</option><option value="active">Active</option><option value="not-started">Not started</option><option value="completed">Completed</option></select></div>
+          <p class="unlock-warning">Editor completion updates the quest log, removes active quest objects, and unlocks known schematic rewards. It cannot replay scripted world events, item rewards, achievements, or automatically start the next quest.</p>
+          <div id="questUnlockList" class="unlock-list"></div>
+        </article>
+
+        <article id="recipesUnlockPane" class="panel unlock-pane hidden">
+          <div class="unlock-pane-head"><div><div class="eyebrow">CRAFTBOT RECIPES</div><h2 id="recipeUnlockCount">Schematics</h2></div><button id="unlockAllRecipesBtn" class="button primary">Unlock all Craftbot recipes</button></div>
+          <div class="unlock-toolbar"><label class="search-box"><span>⌕</span><input id="recipeUnlockSearch" type="search" placeholder="Search blocks, parts, or UUID…"></label><select id="recipeStatusFilter"><option value="all">All recipes</option><option value="locked">Locked only</option><option value="unlocked">Unlocked only</option></select></div>
+          <div id="recipeUnlockList" class="unlock-list recipe-unlock-list"></div>
+        </article>
+
+        <article id="logsUnlockPane" class="panel unlock-pane hidden">
+          <div class="unlock-pane-head"><div><div class="eyebrow">LOGBOOK COLLECTION</div><h2 id="logUnlockCount">Logs</h2></div><button id="unlockAllLogsBtn" class="button primary">Unlock every log</button></div>
+          <div id="logUnlockList" class="unlock-list"></div>
+        </article>
+
+        <article id="clothingUnlockPane" class="panel unlock-pane hidden">
+          <div class="unlock-pane-head"><div><div class="eyebrow">GLOBAL STEAM USER PROFILE</div><h2 id="clothingUnlockCount">Clothing</h2><small id="clothingProfilePath"></small></div><div class="unlock-actions"><button id="stageAllClothingBtn" class="button ghost">Select all clothing</button><button id="saveClothingBtn" class="button primary" disabled>Apply to profile</button></div></div>
+          <div class="unlock-toolbar"><label class="search-box"><span>⌕</span><input id="clothingUnlockSearch" type="search" placeholder="Search outfits…"></label><select id="clothingStatusFilter"><option value="all">All clothing</option><option value="locked">Locked only</option><option value="unlocked">Unlocked only</option></select></div>
+          <p class="unlock-warning">Clothing is global across every world for this Steam user. Applying creates a timestamped backup beside the binary <code>unlock</code> profile before replacing it.</p>
+          <div id="clothingUnlockList" class="unlock-list clothing-unlock-list"></div>
+        </article>
       </section>
 
       <section id="settingsView" class="view hidden">

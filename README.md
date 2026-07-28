@@ -16,7 +16,12 @@ Download the latest `ScrapMechanicSaveEditor.exe` from [Releases](../../releases
 - Shows player Steam ID, inventory container, carry container, consciousness, revival item, and perks.
 - Cancels active raids stored by the Survival raid manager.
 - Edits progression values including seed tier, encrypted vault total, warehouse console unlock, and beacon crafting state.
-- Shows active and completed quests without risking inconsistent quest records.
+- Lists all 46 quests from the installed game data and marks individual quests—or every quest—complete.
+- Removes completed active quest objects and tracked references while preserving unrelated quest-manager data.
+- Unlocks all 528 installed Craftbot recipe outputs individually or together, with game names and icons.
+- Unlocks all 27 logbook entries.
+- Reads and safely updates the Steam user's global clothing profile with 253 named customizations and its required checksum.
+- Edits world day/time and can pause or resume the day cycle.
 - Edits the 40-slot player backpack/hotbar and every other validated container.
 - Loads 1,352 game catalogue entries with names, categories, stack limits, descriptions, and high-resolution game icons.
 - Supports search, filters, drag and drop, right-click replacement, quantities, and background catalogue loading.
@@ -25,6 +30,7 @@ Download the latest `ScrapMechanicSaveEditor.exe` from [Releases](../../releases
 - Edits difficulty and existing multiplayer/physics settings; advanced mode also exposes seed, flags, and game tick.
 - Validates SQLite integrity before loading and after saving.
 - Saves a copy or overwrites with an automatic timestamped backup.
+- Creates a separate timestamped backup before writing the global clothing `unlock` profile.
 
 The full breakdown of known save systems and intentionally read-only fields is in [Editable save data](docs/EDITABLE_SAVE_DATA.md).
 
@@ -72,6 +78,10 @@ The result is `dist\ScrapMechanicSaveEditor.exe`. A faster-starting folder build
 ## Technical notes
 
 Survival saves are SQLite databases containing both ordinary tables and compressed, binary Lua state. The editor parses only structures it can validate, preserves unknown fields and keys, and updates exact source rows instead of rebuilding the database.
+
+Offline quest completion updates the quest manager's completed list, removes active quest objects and tracked references, and unlocks known schematic rewards. It cannot replay live scripted world events, Steam achievements, physical item rewards, or automatic next-quest activation. Those limitations are shown beside the quest controls.
+
+Clothing is not stored in a world database. It lives in the Steam user's global binary `unlock` profile. The editor verifies the file's Steam-ID-bound CRC-32 checksum and creates a backup before applying selected clothing.
 
 Inventory slots use UUIDs plus metadata and quantity. Existing tool instances may safely have their quantity changed, but the editor will not fabricate a tool instance from a catalogue UUID because tools also require a corresponding `Tool` table record.
 

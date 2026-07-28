@@ -25,17 +25,27 @@ def exercise(window: webview.Window, save_path: str) -> None:
     # Do not return loadSave's Promise to Python: that Promise itself calls the
     # Python bridge, so waiting for it here would deadlock the diagnostic thread.
     window.evaluate_js(f"loadSave({json.dumps(save_path)}); true")
-    for _ in range(50):
+    for second in range(45):
         time.sleep(1)
+        if second == 20:
+            window.evaluate_js('switchView("unlocks"); true')
         progress = window.evaluate_js(
             "({offset:state.catalog.offset,total:state.catalog.total,"
-            "cards:document.querySelectorAll('.item-card').length})"
+            "cards:document.querySelectorAll('.item-card').length,"
+            "quests:state.unlocks.data?.quests?.length||0,"
+            "recipes:state.unlocks.data?.recipes?.length||0,"
+            "clothing:state.unlocks.data?.clothing?.length||0,"
+            "unlockRows:document.querySelectorAll('.unlock-row').length})"
         )
         window.set_title(
-            "Catalogue smoke: "
+            "Editor smoke: "
             f"{progress.get('offset', 0)}/{progress.get('total', 0)} "
-            f"({progress.get('cards', 0)} cards)"
+            f"({progress.get('cards', 0)} cards) · "
+            f"Q{progress.get('quests', 0)} R{progress.get('recipes', 0)} "
+            f"C{progress.get('clothing', 0)} · {progress.get('unlockRows', 0)} rows"
         )
+    print(json.dumps(progress, sort_keys=True), flush=True)
+    window.destroy()
 
 
 def main() -> int:

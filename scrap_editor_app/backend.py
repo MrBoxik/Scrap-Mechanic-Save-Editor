@@ -14,10 +14,18 @@ from scrap_mechanic_save_editor import (
     ItemCatalog,
     MapFeature,
     SaveData,
+    default_save_root,
     find_game_root,
     scan_survival_saves,
 )
 from terrain_map import LuaArray, TerrainRenderer, load_terrain_tile_names
+from .game_unlocks import (
+    CustomizationUnlockProfile,
+    load_customization_catalog,
+    load_log_catalog,
+    load_quest_catalog,
+    load_recipe_catalog,
+)
 
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
@@ -70,11 +78,16 @@ class EditorApi:
         self.catalog = ItemCatalog()
         if self.game_root:
             self.catalog.load(self.game_root)
+        self.quest_catalog = load_quest_catalog(self.game_root, self.catalog) if self.game_root else []
+        self.recipe_catalog = load_recipe_catalog(self.game_root, self.catalog) if self.game_root else []
+        self.log_catalog = load_log_catalog(self.game_root) if self.game_root else []
+        self.customization_catalog = load_customization_catalog(self.game_root) if self.game_root else []
         self.icon_atlas = self._load_icon_atlas()
         self.tile_names = load_terrain_tile_names(self.game_root) if self.game_root else {}
         self.save: SaveData | None = None
         self.features: list[MapFeature] = []
         self.map_path: Path | None = None
+        self.customization_profile: CustomizationUnlockProfile | None = None
 
     def dispatch(self, method: str, payload: dict[str, Any]) -> dict[str, Any]:
         handler = getattr(self, method.replace("-", "_"), None)
@@ -90,7 +103,7 @@ class EditorApi:
             stat = path.stat()
             saves.append({"path": str(path), "name": path.stem, "modified": stat.st_mtime, "size": stat.st_size})
         return {
-            "version": "4.2.0",
+            "version": "4.3.0",
             "gameRoot": str(self.game_root) if self.game_root else None,
             "catalogCount": len(self.catalog.items),
             "catalogError": self.catalog.load_error or None,
@@ -101,9 +114,23 @@ class EditorApi:
     def load_save(self, payload: dict[str, Any]) -> dict[str, Any]:
         path = Path(str(payload.get("path") or "")).expanduser().resolve()
         self.save = SaveData(path)
+        self.customization_profile = self._load_customization_profile(self.save)
         self.features = self._build_features(self.save)
         self.map_path = None
         return {"current": self._save_summary(), "containers": self._containers()}
+
+    @staticmethod
+    def _load_customization_profile(save: SaveData) -> CustomizationUnlockProfile | None:
+        steam_id = save.players[0].steam_id if save.players else 0
+        if steam_id <= 0:
+            return None
+        user_dir = next((parent for parent in (save.path.parent, *save.path.parents) if parent.name == f"User_{steam_id}"), None)
+        if user_dir is None:
+            candidate = default_save_root() / f"User_{steam_id}"
+            user_dir = candidate if candidate.is_dir() else None
+        if user_dir is None:
+            return None
+        return CustomizationUnlockProfile.load(user_dir / "unlock", steam_id)
 
     def _require_save(self) -> SaveData:
         if self.save is None:
@@ -281,6 +308,10 @@ class EditorApi:
         completed_names = completed.values if isinstance(completed, LuaArray) else []
         active = quest.get("activeQuests")
         active_names = list(active) if isinstance(active, dict) else []
+        time_data = save.time_state.value if save.time_state else {}
+        if not isinstance(time_data, dict):
+            time_data = {}
+        time_of_day = float(time_data.get("timeOfDay", 0))
         return {
             "players": players,
             "raids": self._raid_data(save),
@@ -296,6 +327,12 @@ class EditorApi:
             "quests": {
                 "active": [{"id": str(name), "name": friendly_name(str(name))} for name in active_names],
                 "completed": [{"id": str(name), "name": friendly_name(str(name))} for name in completed_names],
+            },
+            "time": {
+                "available": bool(save.time_state),
+                "day": int(time_of_day),
+                "hour": (time_of_day % 1.0) * 24.0,
+                "progresses": bool(time_data.get("timeProgress", True)),
             },
             "beaconCount": len(save.beacon_state.value.get("beacons", {}))
             if save.beacon_state and isinstance(save.beacon_state.value, dict)
@@ -360,6 +397,121 @@ class EditorApi:
         )
         return {"state": self.world_state({}), "dirty": save.dirty}
 
+    def update_world_time(self, payload: dict[str, Any]) -> dict[str, Any]:
+        save = self._require_save()
+        save.set_world_time(int(payload["day"]), float(payload["hour"]), bool(payload.get("progresses")))
+        return {"state": self.world_state({}), "dirty": save.dirty}
+
+    def unlocks_state(self, _payload: dict[str, Any]) -> dict[str, Any]:
+        save = self._require_save()
+        active = set(save.active_quest_names())
+        completed = set(save.completed_quest_names())
+        unlocked_recipes = save.unlocked_recipe_ids()
+        unlocked_logs = save.unlocked_log_ids()
+        profile = self.customization_profile
+        unlocked_clothes = set(profile.uuids) if profile else set()
+        quests = []
+        for definition in self.quest_catalog:
+            quest = dict(definition)
+            quest["status"] = "completed" if quest["id"] in completed else "active" if quest["id"] in active else "not-started"
+            quests.append(quest)
+        recipes = []
+        for definition in self.recipe_catalog:
+            recipe = dict(definition)
+            recipe["unlocked"] = recipe["uuid"] in unlocked_recipes
+            recipe.update(self._icon_data(recipe["uuid"]))
+            recipes.append(recipe)
+        logs = [{**definition, "unlocked": definition["uuid"] in unlocked_logs} for definition in self.log_catalog]
+        clothes = [{**definition, "unlocked": definition["uuid"] in unlocked_clothes} for definition in self.customization_catalog]
+        return {
+            "quests": quests,
+            "recipes": recipes,
+            "logs": logs,
+            "clothing": clothes,
+            "clothingProfile": {
+                "available": profile is not None,
+                "path": str(profile.path) if profile else None,
+                "steamId": profile.steam_id if profile else None,
+                "dirty": profile.dirty if profile else False,
+                "unlocked": len(profile.uuids) if profile else 0,
+            },
+        }
+
+    def _quest_definition(self, quest_id: str) -> dict[str, Any]:
+        definition = next((item for item in self.quest_catalog if item["id"] == quest_id), None)
+        if definition is None:
+            raise ValueError("Quest is not present in the installed game data")
+        return definition
+
+    def _unlock_quest_schematic_rewards(self, definitions: list[dict[str, Any]]) -> int:
+        recipe_ids = {
+            reward["uuid"]
+            for definition in definitions
+            for reward in definition.get("rewards", [])
+            if reward.get("type") == "schematic" and reward.get("uuid")
+        }
+        return self._require_save().unlock_recipes(recipe_ids) if recipe_ids else 0
+
+    def complete_quest(self, payload: dict[str, Any]) -> dict[str, Any]:
+        definition = self._quest_definition(str(payload.get("id") or ""))
+        changed = self._require_save().complete_quest(definition["id"])
+        rewards = self._unlock_quest_schematic_rewards([definition]) if changed else 0
+        return {"changed": changed, "schematicsUnlocked": rewards, "state": self.unlocks_state({})}
+
+    def complete_all_quests(self, _payload: dict[str, Any]) -> dict[str, Any]:
+        save = self._require_save()
+        changed = save.complete_all_quests(definition["id"] for definition in self.quest_catalog)
+        rewards = self._unlock_quest_schematic_rewards(self.quest_catalog)
+        return {"changed": changed, "schematicsUnlocked": rewards, "state": self.unlocks_state({})}
+
+    def unlock_recipe(self, payload: dict[str, Any]) -> dict[str, Any]:
+        recipe_id = str(payload.get("id") or "").casefold()
+        if not any(item["uuid"] == recipe_id for item in self.recipe_catalog):
+            raise ValueError("Recipe is not present in the installed Craftbot data")
+        changed = self._require_save().unlock_recipes([recipe_id])
+        return {"changed": changed, "state": self.unlocks_state({})}
+
+    def unlock_all_recipes(self, _payload: dict[str, Any]) -> dict[str, Any]:
+        changed = self._require_save().unlock_recipes(item["uuid"] for item in self.recipe_catalog)
+        return {"changed": changed, "state": self.unlocks_state({})}
+
+    def unlock_log(self, payload: dict[str, Any]) -> dict[str, Any]:
+        log_id = str(payload.get("id") or "").casefold()
+        if not any(item["uuid"] == log_id for item in self.log_catalog):
+            raise ValueError("Log entry is not present in the installed game data")
+        changed = self._require_save().unlock_logs([log_id])
+        return {"changed": changed, "state": self.unlocks_state({})}
+
+    def unlock_all_logs(self, _payload: dict[str, Any]) -> dict[str, Any]:
+        changed = self._require_save().unlock_logs(item["uuid"] for item in self.log_catalog)
+        return {"changed": changed, "state": self.unlocks_state({})}
+
+    def stage_clothing(self, payload: dict[str, Any]) -> dict[str, Any]:
+        profile = self.customization_profile
+        if profile is None:
+            raise RuntimeError("The Steam user's clothing unlock profile was not found")
+        clothing_id = str(payload.get("id") or "").casefold()
+        if not any(item["uuid"] == clothing_id for item in self.customization_catalog):
+            raise ValueError("Clothing item is not present in the installed game data")
+        changed = profile.unlock(clothing_id)
+        return {"changed": changed, "state": self.unlocks_state({})}
+
+    def stage_all_clothing(self, _payload: dict[str, Any]) -> dict[str, Any]:
+        profile = self.customization_profile
+        if profile is None:
+            raise RuntimeError("The Steam user's clothing unlock profile was not found")
+        changed = sum(1 for item in self.customization_catalog if profile.unlock(item["uuid"]))
+        return {"changed": changed, "state": self.unlocks_state({})}
+
+    def save_clothing(self, payload: dict[str, Any]) -> dict[str, Any]:
+        profile = self.customization_profile
+        if profile is None:
+            raise RuntimeError("The Steam user's clothing unlock profile was not found")
+        if payload.get("confirmation") != "APPLY CLOTHING":
+            raise ValueError("Clothing confirmation was not supplied")
+        backup = profile.save()
+        return {"path": str(profile.path), "backup": str(backup) if backup else None, "state": self.unlocks_state({})}
+
     def save_copy(self, payload: dict[str, Any]) -> dict[str, Any]:
         save = self._require_save()
         destination = str(payload.get("path") or save.path.with_name(f"{save.path.stem}_edited.db"))
@@ -372,6 +524,7 @@ class EditorApi:
             raise ValueError("Overwrite confirmation was not supplied")
         written, backup = save.save_copy(save.path, overwrite_source=True)
         self.save = SaveData(written)
+        self.customization_profile = self._load_customization_profile(self.save)
         self.features = self._build_features(self.save)
         self.map_path = None
         return {

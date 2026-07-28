@@ -1,24 +1,29 @@
-# Scrap Mechanic Save Editor 4.2.0
+# Scrap Mechanic Save Editor 4.3.0
 
-This release expands the editor beyond inventory and world mapping with safe,
-version-aware player and Survival progression controls.
+Version 4.3 adds a complete progression and unlock-management workspace based
+on the schemas in Scrap Mechanic 1.0.0.867.
 
 ## New
 
-- Player & World page with editable health, maximum health, oxygen, and maximum oxygen.
-- Multi-player-state selector showing Steam ID and linked inventory/carry containers.
-- Active raid viewer and **Cancel all raids** action.
-- Editable seed tier, encrypted vault total, warehouse console unlock, and beacon crafting state.
-- Read-only active/completed quest lists to expose progress without creating inconsistent quest records.
-- Player beacons shown as useful world-map landmarks.
-- Safer binary Lua serialization that preserves unknown fields and supports double values.
+- Lists all 46 quests with their real localized titles, type, ID, status, and known rewards.
+- Marks one quest or every installed quest complete.
+- Safely removes active quest ScriptableObjects and tracking references when completing them.
+- Unlocks known schematic rewards while completing quests.
+- Lists all 528 Craftbot recipe outputs with item names, groups, UUIDs, and high-resolution icons.
+- Unlocks individual Craftbot schematics or all recipes at once.
+- Lists and unlocks all 27 logbook entries.
+- Lists 253 named clothing customizations from the installed game data.
+- Reads, verifies, edits, and backs up the Steam user's global binary clothing `unlock` profile.
+- Edits the current world day and time and can freeze or resume the day cycle.
+- Loads the large unlock catalogues lazily and renders them in background chunks to keep startup responsive.
 
-## Existing highlights
+## Quest completion limitations
 
-- Full 40-slot backpack/hotbar editing and validated world containers.
-- 1,352 searchable game catalogue entries with high-resolution icons.
-- Detailed zoomable generated world map with meaningful destination filters.
-- Difficulty and advanced world settings.
-- Save-copy workflow, automatic timestamped backups, and SQLite integrity checks.
+An offline editor cannot execute live game scripts. Quest completion updates the
+saved quest manager, removes active quest objects, clears tracked references,
+and unlocks known schematic rewards. It does not replay physical item rewards,
+world events, achievements, dialogs, or automatic next-quest activation.
 
-Close Scrap Mechanic before editing. Use **Save a Copy** for experimental changes.
+Close Scrap Mechanic before editing. Use **Save a Copy** for experimental world
+changes. Clothing is global across worlds and has its own **Apply to profile**
+button with an automatic timestamped backup.

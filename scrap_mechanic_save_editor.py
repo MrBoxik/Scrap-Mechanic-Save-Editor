@@ -595,6 +595,10 @@ class SaveData:
         self.progression_state: LuaStorageBlock | None = None
         self.quest_state: LuaStorageBlock | None = None
         self.beacon_state: LuaStorageBlock | None = None
+        self.recipe_state: LuaStorageBlock | None = None
+        self.time_state: LuaStorageBlock | None = None
+        self.log_state: LuaStorageBlock | None = None
+        self.pending_quest_object_deletions: set[int] = set()
         self.terrain_grid: TerrainGrid | None = None
         self.terrain_error = ""
         self.table_counts: dict[str, int] = {}
@@ -730,11 +734,15 @@ class SaveData:
         channel_by_key = {
             self._storage_channel_key(35): "beacons",
             self._storage_channel_key(45): "raids",
+            self._storage_channel_key(49): "recipes",
+            self._storage_channel_key(60): "logs",
             self._storage_channel_key(79): "progression",
+            self._storage_channel_key(16): "time",
         }
+        placeholders = ",".join("?" for _ in channel_by_key)
         for row in connection.execute(
             "SELECT rowid,key,worldId,flags,data FROM ScriptData "
-            "WHERE (worldId=65534 AND flags=3) OR key IN (?,?,?)",
+            f"WHERE (worldId=65534 AND flags=3) OR key IN ({placeholders})",
             tuple(channel_by_key),
         ):
             blob, key = row["data"], row["key"]
@@ -753,6 +761,12 @@ class SaveData:
                 self.progression_state = block
             elif kind == "beacons":
                 self.beacon_state = block
+            elif kind == "recipes":
+                self.recipe_state = block
+            elif kind == "logs":
+                self.log_state = block
+            elif kind == "time":
+                self.time_state = block
             elif isinstance(value, dict) and isinstance(value.get("stats"), dict) and "isConscious" in value:
                 self.player_states.append(block)
             elif isinstance(value, dict) and "activeQuests" in value and "completedQuests" in value:
@@ -819,6 +833,102 @@ class SaveData:
             }
         )
 
+    @staticmethod
+    def _lua_array_values(value: Any) -> list[Any]:
+        return value.values if isinstance(value, LuaArray) else []
+
+    def completed_quest_names(self) -> list[str]:
+        if self.quest_state is None or not isinstance(self.quest_state.value, dict):
+            return []
+        return [str(value) for value in self._lua_array_values(self.quest_state.value.get("completedQuests"))]
+
+    def active_quest_names(self) -> list[str]:
+        if self.quest_state is None or not isinstance(self.quest_state.value, dict):
+            return []
+        active = self.quest_state.value.get("activeQuests")
+        return [str(value) for value in active] if isinstance(active, dict) else []
+
+    def complete_quest(self, quest_name: str) -> bool:
+        if self.quest_state is None or not isinstance(self.quest_state.value, dict):
+            raise RuntimeError("Quest manager state was not found in this save")
+        name = str(quest_name).strip()
+        if not re.fullmatch(r"quest_[a-z0-9_]+", name):
+            raise ValueError("Invalid quest identifier")
+        completed = self.quest_state.value.get("completedQuests")
+        if not isinstance(completed, LuaArray):
+            completed = LuaArray(1, [])
+            self.quest_state.value["completedQuests"] = completed
+        if name in completed.values:
+            return False
+
+        active = self.quest_state.value.get("activeQuests")
+        reference = active.pop(name, None) if isinstance(active, dict) else None
+        if isinstance(reference, tuple) and len(reference) >= 3 and reference[0] == "reference":
+            object_id = int(reference[2])
+            if object_id > 0:
+                self.pending_quest_object_deletions.add(object_id)
+
+        tracked = self.quest_state.value.get("trackedQuests")
+        tracked_players = tracked.values if isinstance(tracked, LuaArray) else tracked.values() if isinstance(tracked, dict) else []
+        for player_quests in tracked_players:
+            if isinstance(player_quests, dict):
+                player_quests.pop(name, None)
+        completed.values.append(name)
+        return True
+
+    def complete_all_quests(self, quest_names: Iterable[str]) -> int:
+        return sum(1 for name in quest_names if self.complete_quest(name))
+
+    def unlocked_recipe_ids(self) -> set[str]:
+        if self.recipe_state is None or not isinstance(self.recipe_state.value, dict):
+            return set()
+        values = self.recipe_state.value.get("unlockedRecipes")
+        return {str(key).casefold() for key, enabled in values.items() if enabled} if isinstance(values, dict) else set()
+
+    def unlock_recipes(self, recipe_ids: Iterable[str]) -> int:
+        if self.recipe_state is None or not isinstance(self.recipe_state.value, dict):
+            raise RuntimeError("Recipe manager state was not found in this save")
+        recipes = self.recipe_state.value.setdefault("unlockedRecipes", {})
+        if not isinstance(recipes, dict):
+            raise RuntimeError("Recipe manager has an unsupported unlockedRecipes value")
+        added = 0
+        for value in recipe_ids:
+            normalized = str(uuid.UUID(str(value)))
+            if recipes.get(normalized) is not True:
+                recipes[normalized] = True
+                added += 1
+        return added
+
+    def unlocked_log_ids(self) -> set[str]:
+        if self.log_state is None:
+            return set()
+        return {str(value).casefold() for value in self._lua_array_values(self.log_state.value)}
+
+    def unlock_logs(self, log_ids: Iterable[str]) -> int:
+        if self.log_state is None:
+            raise RuntimeError("Logbook state was not found in this save")
+        if not isinstance(self.log_state.value, LuaArray):
+            raise RuntimeError("Logbook state has an unsupported format")
+        existing = self.unlocked_log_ids()
+        added = 0
+        for value in log_ids:
+            normalized = str(uuid.UUID(str(value)))
+            if normalized not in existing:
+                self.log_state.value.values.append(normalized)
+                existing.add(normalized)
+                added += 1
+        return added
+
+    def set_world_time(self, day: int, hour: float, progresses: bool) -> None:
+        if self.time_state is None or not isinstance(self.time_state.value, dict):
+            raise RuntimeError("World time state was not found in this save")
+        if not 0 <= day <= 1_000_000:
+            raise ValueError("Day must be between 0 and 1,000,000")
+        if not 0 <= hour < 24:
+            raise ValueError("Hour must be from 0 up to (but not including) 24")
+        self.time_state.value["timeOfDay"] = int(day) + float(hour) / 24.0
+        self.time_state.value["timeProgress"] = bool(progresses)
+
     def _load_maps(self, connection: sqlite3.Connection, tables: set[str]) -> None:
         world_ids: set[int] = set()
         for table in ("Harvestable", "Unit", "RigidBody"):
@@ -864,6 +974,11 @@ class SaveData:
             or any(block.dirty for block in self.player_states)
             or bool(self.raid_state and self.raid_state.dirty)
             or bool(self.progression_state and self.progression_state.dirty)
+            or bool(self.quest_state and self.quest_state.dirty)
+            or bool(self.recipe_state and self.recipe_state.dirty)
+            or bool(self.time_state and self.time_state.dirty)
+            or bool(self.log_state and self.log_state.dirty)
+            or bool(self.pending_quest_object_deletions)
         )
 
     def set_game_fields(self, flags: int, seed: int, gametick: int) -> None:
@@ -924,12 +1039,36 @@ class SaveData:
                         )
                 script_blocks = [*self.player_states]
                 script_blocks.extend(
-                    block for block in (self.raid_state, self.progression_state) if block is not None
+                    block for block in (
+                        self.raid_state,
+                        self.progression_state,
+                        self.quest_state,
+                        self.recipe_state,
+                        self.time_state,
+                        self.log_state,
+                    ) if block is not None
                 )
                 for block in script_blocks:
                     if block.dirty:
                         connection.execute(
                             "UPDATE ScriptData SET data=? WHERE rowid=?", (block.to_bytes(), block.rowid)
+                        )
+                if self.pending_quest_object_deletions:
+                    if self.quest_state is None:
+                        raise RuntimeError("Quest object deletion requested without quest manager state")
+                    manager_uid_row = connection.execute(
+                        "SELECT uid FROM ScriptData WHERE rowid=?", (self.quest_state.rowid,)
+                    ).fetchone()
+                    if manager_uid_row is None:
+                        raise RuntimeError("Quest manager storage owner was not found")
+                    manager_uid = manager_uid_row[0]
+                    for object_id in sorted(self.pending_quest_object_deletions):
+                        connection.execute(
+                            "DELETE FROM ScriptData WHERE uid=? AND key=? AND worldId=65534",
+                            (manager_uid, int(object_id).to_bytes(4, "little")),
+                        )
+                        connection.execute(
+                            "DELETE FROM ScriptableObject WHERE id=? AND worldId=65534", (object_id,)
                         )
                 connection.commit()
                 result = connection.execute("PRAGMA integrity_check").fetchone()

@@ -10,6 +10,13 @@ import tempfile
 import unittest
 
 from scrap_mechanic_save_editor import ItemCatalog, MapRenderer, SaveData, find_game_root
+from scrap_editor_app.game_unlocks import (
+    CustomizationUnlockProfile,
+    load_customization_catalog,
+    load_log_catalog,
+    load_quest_catalog,
+    load_recipe_catalog,
+)
 from terrain_map import TerrainRenderer, fnv1a_uuid, load_terrain_tiles
 
 
@@ -51,6 +58,9 @@ class EditorTests(unittest.TestCase):
         self.assertIsNotNone(save.raid_state)
         self.assertIsNotNone(save.progression_state)
         self.assertIsNotNone(save.quest_state)
+        self.assertIsNotNone(save.recipe_state)
+        self.assertIsNotNone(save.time_state)
+        self.assertIsNotNone(save.log_state)
 
     @unittest.skipUnless(SAVE.is_file(), "local test save is unavailable")
     def test_unchanged_roundtrip_preserves_editable_blobs(self) -> None:
@@ -121,6 +131,86 @@ class EditorTests(unittest.TestCase):
             finally:
                 source.close()
                 copied.close()
+
+    @unittest.skipUnless(SAVE.is_file(), "local test save is unavailable")
+    def test_quest_recipe_log_and_time_roundtrip(self) -> None:
+        root = find_game_root()
+        if not root:
+            self.skipTest("local game installation is unavailable")
+        catalog = ItemCatalog()
+        catalog.load(root)
+        quests = load_quest_catalog(root, catalog)
+        recipes = load_recipe_catalog(root, catalog)
+        logs = load_log_catalog(root)
+        save = SaveData(SAVE)
+        active_name = save.active_quest_names()[0]
+        active_ref = save.quest_state.value["activeQuests"][active_name]  # type: ignore[union-attr]
+        active_object_id = int(active_ref[2])
+        inactive = next(item["id"] for item in quests if item["id"] not in save.completed_quest_names())
+        recipe_id = next(item["uuid"] for item in recipes if item["uuid"] not in save.unlocked_recipe_ids())
+        log_id = next(item["uuid"] for item in logs if item["uuid"] not in save.unlocked_log_ids())
+        self.assertTrue(save.complete_quest(active_name))
+        save.complete_quest(inactive)
+        self.assertEqual(save.unlock_recipes([recipe_id]), 1)
+        self.assertEqual(save.unlock_logs([log_id]), 1)
+        save.set_world_time(12, 18.5, False)
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "progress-edited.db"
+            save.save_copy(output)
+            loaded = SaveData(output)
+            self.assertNotIn(active_name, loaded.active_quest_names())
+            self.assertIn(active_name, loaded.completed_quest_names())
+            self.assertIn(inactive, loaded.completed_quest_names())
+            self.assertIn(recipe_id, loaded.unlocked_recipe_ids())
+            self.assertIn(log_id, loaded.unlocked_log_ids())
+            self.assertEqual(loaded.time_state.value["timeOfDay"], 12 + 18.5 / 24)  # type: ignore[union-attr]
+            self.assertFalse(loaded.time_state.value["timeProgress"])  # type: ignore[union-attr]
+            copied = sqlite3.connect(output)
+            try:
+                self.assertEqual(copied.execute("SELECT count(*) FROM ScriptableObject WHERE id=?", (active_object_id,)).fetchone()[0], 0)
+                self.assertEqual(copied.execute("PRAGMA integrity_check").fetchone()[0], "ok")
+            finally:
+                copied.close()
+
+    def test_installed_progression_catalogs(self) -> None:
+        root = find_game_root()
+        if not root:
+            self.skipTest("local game installation is unavailable")
+        catalog = ItemCatalog()
+        catalog.load(root)
+        self.assertEqual(len(load_quest_catalog(root, catalog)), 46)
+        self.assertEqual(len(load_recipe_catalog(root, catalog)), 528)
+        self.assertEqual(len(load_log_catalog(root)), 27)
+        self.assertGreaterEqual(len(load_customization_catalog(root)), 250)
+
+    @unittest.skipUnless(SAVE.is_file(), "local test save is unavailable")
+    def test_customization_unlock_profile_checksum_and_backup(self) -> None:
+        root = find_game_root()
+        save = SaveData(SAVE)
+        if not root or not save.players:
+            self.skipTest("local game or player profile is unavailable")
+        steam_id = save.players[0].steam_id
+        source = next(
+            (parent / "unlock" for parent in SAVE.parents if parent.name == f"User_{steam_id}"),
+            None,
+        )
+        if source is None or not source.is_file():
+            self.skipTest("local clothing unlock profile is unavailable")
+        existing = CustomizationUnlockProfile.load(source, steam_id)
+        clothing = load_customization_catalog(root)
+        new_id = next(item["uuid"] for item in clothing if item["uuid"] not in existing.uuids)
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "unlock"
+            profile = CustomizationUnlockProfile(output, steam_id, list(existing.uuids), [])
+            profile.unlock(new_id)
+            self.assertIsNone(profile.save())
+            loaded = CustomizationUnlockProfile.load(output, steam_id)
+            self.assertIn(new_id, loaded.uuids)
+            second_id = next(item["uuid"] for item in clothing if item["uuid"] not in loaded.uuids)
+            loaded.unlock(second_id)
+            backup = loaded.save()
+            self.assertIsNotNone(backup)
+            self.assertTrue(backup.is_file())  # type: ignore[union-attr]
 
     @unittest.skipUnless(SAVE.is_file(), "local test save is unavailable")
     def test_replacing_tool_slot_resets_metadata(self) -> None:
