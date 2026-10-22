@@ -253,7 +253,7 @@ class ReleaseRegressionTests(unittest.TestCase):
             result = api.map_meta({})
             self.assertFalse(result["needsCapture"])
             self.assertEqual(result["width"], 1024)
-            self.assertEqual(result["image"], cached.as_uri())
+            self.assertEqual(result["image"], cached.resolve().as_uri())
 
     def test_same_save_reentry_rebinds_snapshot_and_player_context(self):
         with TemporaryDirectory() as temporary:
