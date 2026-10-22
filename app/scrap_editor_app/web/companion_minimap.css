@@ -1,0 +1,145 @@
+:root {
+  color-scheme: dark;
+  font-family: Arial, sans-serif;
+  --edge: 0px;
+  --yellow: #ffc42c;
+}
+
+* { box-sizing: border-box; }
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: transparent !important;
+  pointer-events: none;
+  user-select: none;
+}
+
+main {
+  position: absolute;
+  inset: var(--edge);
+  overflow: hidden;
+  border: 3px solid var(--yellow);
+  border-radius: 18px;
+  background: #071b20;
+  box-shadow: inset 0 0 0 2px #07171ddd;
+}
+
+main.circle { border-radius: 50%; }
+
+main.border-compact {
+  border-width: 2px;
+  border-color: #ffd45c;
+  box-shadow: inset 0 0 0 1px #07171ddd;
+}
+
+main.border-none {
+  inset: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+main.border-none.circle { border-radius: 50%; }
+canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#minimap {
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+#playerLayer { pointer-events: none; }
+
+#compass {
+  position: absolute;
+  inset: 5px;
+  color: #fff4c0;
+  font-size: 9px;
+  font-weight: 900;
+  text-shadow: 0 1px 3px #000;
+  letter-spacing: .05em;
+}
+
+#compass span { position: absolute; }
+.north { top: 0; left: 50%; transform: translateX(-50%); }
+.south { bottom: 0; left: 50%; transform: translateX(-50%); }
+.east { right: 2px; top: 50%; transform: translateY(-50%); }
+.west { left: 2px; top: 50%; transform: translateY(-50%); }
+
+#mapKey {
+  position: absolute;
+  right: 9px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 5px;
+  border: 1px solid #ffc42c88;
+  border-radius: 6px;
+  background: #06171ddd;
+  color: #ffe28c;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  box-shadow: 0 2px 6px #0008;
+}
+
+#mapKey kbd {
+  min-width: 15px;
+  padding: 1px 3px;
+  border: 1px solid #fff5;
+  border-radius: 3px;
+  background: #ffc42c;
+  color: #17120a;
+  font: 900 9px Arial;
+  text-align: center;
+}
+
+#buildStatus {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 10px;
+  padding: 7px;
+  border: 1px solid #ffc42c55;
+  border-radius: 7px;
+  background: #050e11ed;
+  color: #ffd053;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  text-shadow: 0 1px 2px #000;
+  transition: opacity .15s;
+}
+
+main.circle #buildStatus { left: 25px; right: 25px; bottom: 20px; }
+#buildStatus.quiet { opacity: 0; }
+#mapStatus:empty + #progressTrack { display: none; }
+
+#progressTrack {
+  height: 3px;
+  margin-top: 5px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: #ffffff29;
+}
+
+#progressBar {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--yellow);
+  box-shadow: 0 0 5px #ffc42cb3;
+  transition: width .12s linear;
+}

@@ -1,0 +1,14 @@
+{
+  "toolList": [
+    {
+      "autoTool": true,
+      "previewRenderable": "$GAME_DATA/Character/Char_Tools/char_connecttool_preview.rend",
+      "previewRotation": [1, 0, 0, 0, 0, -1, 0, 1, 0],
+      "script": {
+        "class": "MapTool",
+        "file": "$CONTENT_DATA/Scripts/MapTool.lua"
+      },
+      "uuid": "2a8c60ae-0c42-49a9-a5b0-95d484786af7"
+    }
+  ]
+}

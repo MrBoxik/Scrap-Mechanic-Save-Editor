@@ -1,0 +1,7 @@
+{
+  "2a8c60ae-0c42-49a9-a5b0-95d484786af7": {
+    "description": "Opens the seed-safe exploration map. Primary use opens or closes the full map; secondary use changes its range.",
+    "title": "Map Tool",
+    "upperCaseTitle": "MAP TOOL"
+  }
+}

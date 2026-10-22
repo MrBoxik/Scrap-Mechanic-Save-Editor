@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Scrap Mechanic Minimap</title>
+  <link rel="stylesheet" href="companion_minimap.css">
+</head>
+<body>
+  <main aria-label="Scrap Mechanic minimap">
+    <canvas id="minimap" width="384" height="384"></canvas>
+    <canvas id="playerLayer" width="384" height="384" aria-hidden="true"></canvas>
+    <div id="compass" aria-hidden="true"><span class="north">N</span><span class="east">E</span><span class="south">S</span><span class="west">W</span></div>
+    <div id="mapKey" aria-hidden="true"><kbd>M</kbd><span>MAP</span></div>
+    <section id="buildStatus" aria-live="polite">
+      <div id="mapStatus">Preparing map…</div>
+      <div id="progressTrack"><span id="progressBar"></span></div>
+    </section>
+  </main>
+  <script src="companion_preview.js"></script>
+  <script src="companion_waypoints.js"></script>
+  <script src="companion_minimap.js"></script>
+</body>
+</html>

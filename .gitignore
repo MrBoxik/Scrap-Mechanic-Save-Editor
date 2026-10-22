@@ -5,15 +5,28 @@ __pycache__/
 .mypy_cache/
 .venv/
 venv/
+node_modules/
+/app/artifacts/
 
 build/
 dist/
 build-*/
 dist-*/
 *.spec
+/.build/
+/.cache/
+/4.*/
+/releases/
+/artifacts/
+/MAP COMPANION - OPEN THIS/
+/app/.build/
+/app/.cache/
+/app/companion_mod/ScrapMechanicMap/Gui/MapCache/
+/app/companion_mod/ScrapMechanicMap/Gui/Resolutions/*/MapCache/
+/app/companion_mod/ScrapMechanicMap/MapCache/
 
-assets/item-icons/
-assets/item-icons-hd/
+app/assets/item-icons/
+app/assets/item-icons-hd/
 new_box_1_world_1_schematic.png
 new_box_1_world_1_terrain_hd.png
 
@@ -28,3 +41,4 @@ Desktop.ini
 *.sqlite
 *.sqlite3
 *.bak
+*.db-journal

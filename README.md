@@ -1,108 +1,108 @@
-# Scrap Mechanic Save Editor
+<h1 align="center">Scrap Mechanic Save Editor</h1>
 
-A polished offline desktop editor for Scrap Mechanic Survival, Creative/Sandbox, and Custom Game saves. It combines a Python save engine with an HTML/CSS interface embedded directly in a Windows application—there is no website, localhost server, browser window, account, or save upload.
+<p align="center">Edit your saves. Explore your world. Keep your progress backed up.</p>
 
-> [!IMPORTANT]
-> Close Scrap Mechanic before editing. The editor automatically keeps timestamped versions under `%LOCALAPPDATA%\ScrapMechanicSaveEditor\Backups`, outside every game save folder.
+<p align="center">
+  <a href="https://github.com/MrBoxik/Scrap-Mechanic-Save-Editor/releases/latest"><b>Download for Windows</b></a>
+  &nbsp; | &nbsp;
+  <a href="docs/USER_GUIDE.md">User guide</a>
+  &nbsp; | &nbsp;
+  <a href="https://github.com/MrBoxik/Scrap-Mechanic-Save-Editor/issues">Report a problem</a>
+</p>
+
+An offline desktop save editor with a 2D/3D world viewer and a live Map Companion
+for Survival. No account, save upload, or Python installation is needed to use
+the Windows release.
 
 ## Download
 
-Download the latest `ScrapMechanicSaveEditor.exe` from [Releases](../../releases/latest). The packaged application does not require Python.
+1. Open the [latest release](https://github.com/MrBoxik/Scrap-Mechanic-Save-Editor/releases/latest).
+2. Download `ScrapMechanicSaveEditor-4.22.1-Windows-x64.zip` and extract **all** its contents.
+3. Open `ScrapMechanicSaveEditor.exe` inside the extracted folder.
 
-## Highlights
+Keep `_internal` beside the EXE. This portable layout starts faster than a
+single-file executable that unpacks itself on every launch. GitHub's **Source
+code** downloads are for developers, not the ready-to-run app.
 
-- Automatically discovers Survival, Creative/Sandbox, and Custom Game databases for every local Scrap Mechanic user.
-- Edits validated Creative/Sandbox and Custom Game inventories, containers, session settings, and any recognized state channels actually present in the database.
-- Keeps automatic, manual, and edited-copy versions outside the game save folders, with a built-in history and safe restore.
-- Detects and archives per-pack Challenge Mode progress files and saved challenge creations.
-- Edits player health, maximum health, oxygen, and maximum oxygen.
-- Shows player Steam ID, inventory container, carry container, consciousness, revival item, and perks.
-- Cancels active raids stored by the Survival raid manager.
-- Edits progression values including seed tier, encrypted vault total, warehouse console unlock, and beacon crafting state.
-- Lists all 46 quests from the installed game data and marks individual quests—or every quest—complete.
-- Removes completed active quest objects and tracked references while preserving unrelated quest-manager data.
-- Unlocks all 528 installed Craftbot recipe outputs individually or together, with game names and icons.
-- Unlocks all 27 logbook entries.
-- Reads and safely updates the Steam user's global clothing profile with 253 named customizations and its required checksum.
-- Edits world day/time and can pause or resume the day cycle.
-- Edits the 40-slot player backpack/hotbar and every other validated container.
-- Loads 1,352 game catalogue entries with names, categories, stack limits, descriptions, and high-resolution game icons.
-- Supports search, filters, drag and drop, right-click replacement, quantities, and background catalogue loading.
-- Renders the real generated 128×96 Survival overworld with roads, terrain, lakes, buildings, destinations, player position, and player beacons.
-- Provides map search, destination filters, hover details, wheel zoom, buttons, fit-to-view, and drag panning.
-- Edits difficulty and existing multiplayer/physics settings; advanced mode also exposes seed, flags, and game tick.
-- Validates SQLite integrity before loading and after saving.
-- Saves edited copies to the external archive or writes to the game with an automatic timestamped backup.
-- Creates a separate timestamped backup before writing the global clothing `unlock` profile.
+**Requirements:** Windows 10/11, 64-bit, and a Steam installation of Scrap
+Mechanic. Steam and the game can be installed on different drives.
 
-The full breakdown of known save systems and intentionally read-only fields is in [Editable save data](docs/EDITABLE_SAVE_DATA.md).
+> [!IMPORTANT]
+> Close Scrap Mechanic before editing saves or character profiles. Keep your
+> own backup too. The editor makes timestamped backups outside the game's save
+> folders, but no save editor can guarantee recovery from every problem.
 
-## Safe workflow
+## Features
 
-1. Exit Scrap Mechanic completely.
-2. Open the editor and select a detected world save.
-3. Make the changes you want.
-4. Optionally use **Save edited copy** to keep a checkpoint in the external archive.
-5. Use **Save to game** to write the staged changes to the world.
-6. Start Scrap Mechanic and test the edited save.
+| Area | What you can do |
+| --- | --- |
+| Inventory | Edit backpack, hotbar, and recognized containers; search items, change quantities, and drag slots. |
+| Player and world | Change health, oxygen, food perks, position, day/time, difficulty, and supported world settings. |
+| Progress | Edit supported quests, recipes, logbook entries, unlocks, raids, and world services. |
+| Character | Edit global clothing unlocks, appearance, and equipment with profile backups. |
+| Blueprints | Browse local creations, edit metadata, duplicate, export, and import ZIPs. |
+| World map | Search destinations, inspect tile artwork, build an HD 2D map, and explore the generated world in 3D. |
+| Map Companion | Use a live minimap and M-key world map with persistent exploration, waypoint details, and settings you can change in game. |
+| Backups | Keep edited copies, browse version history, and restore with a recovery backup. |
 
-## Run from source
+Survival has the widest support. Creative/Sandbox and Custom Game saves expose
+only the capabilities actually present in their database. **Map Companion is
+Survival-only.**
 
-Python 3.11 or newer is recommended.
+## Map Companion
+
+Choose **Launch with Map Companion** in the editor. It starts the game through
+Steam and opens the minimap when a Survival world loads. No game-file patch,
+developer mode, or Workshop mod is required.
+
+- Press **M** for the full map and **Esc** to close it.
+- Choose a circle or rounded-square minimap, orientation, zoom, and reveal shape.
+- Exploration persists per world; discovered destinations remain available.
+- Use the terrain map immediately, or build an HD map in the editor first.
+- Preview settings in the editor before launching the game.
+
+<p align="center">
+  <img src="docs/images/map-companion.png" alt="Map Companion preview with location search, waypoint details, and minimap settings" width="1000">
+</p>
+
+The companion reads live position/facing from the game process **read-only**.
+It parses private save snapshots and never writes to the active game database.
+See the [user guide](docs/USER_GUIDE.md) and [privacy notes](docs/PRIVACY.md).
+
+## Feedback and Support
+
+Found a bug? Include your editor version, game version, steps to reproduce, and
+a screenshot where useful. Read the [support guide](docs/SUPPORT.md) before
+sharing logs or saves; they can contain personal information.
+
+- [GitHub issues](https://github.com/MrBoxik/Scrap-Mechanic-Save-Editor/issues)
+- [Discord](https://discord.com/users/638802769393745950)
+- [Buy me a coffee](https://www.buymeacoffee.com/mrboxik)
+
+This is an unsigned community application. Review its source and release
+checksums before running it; do not disable antivirus protections to use it.
+
+## Source and Building
+
+The application, assets, tests, and build tools live in [`app/`](app/). Guides,
+release notes, and validation reports live in [`docs/`](docs/).
 
 ```powershell
+cd app
 python -m pip install -r requirements-desktop.txt
-python .\run_desktop_editor.py
+python run_desktop_editor.py
 ```
 
-The legacy Tkinter interface remains available for diagnostics:
-
-```powershell
-python .\scrap_mechanic_save_editor.py
-```
-
-Read-only command-line inspection:
-
-```powershell
-python .\scrap_mechanic_save_editor.py --inspect "C:\path\to\save.db"
-```
-
-## Build the Windows app
-
-Install PyInstaller, then build the single-file release:
-
-```powershell
-python -m pip install pyinstaller
-python .\build_desktop.py --onefile
-```
-
-The result is `dist\ScrapMechanicSaveEditor.exe`. A faster-starting folder build can be made by omitting `--onefile`.
-
-## Technical notes
-
-World saves are SQLite databases containing ordinary tables and, depending on the mode, compressed binary Lua state. The editor detects capabilities from each database, preserves unknown fields and keys, and updates exact source rows instead of rebuilding the database. Survival-only controls are disabled for Creative/Sandbox and Custom Game worlds that do not contain those managers.
-
-Challenge Mode does not use a normal persistent world database. Its per-pack JSON under the user's `Progress` directory contains engine-checksummed challenge records and saved creations. Version 4.4 detects, externally backs up, and safely restores those files; it does not fabricate completion records or expose Survival-only editors for them.
-
-All world and Challenge progress archives are stored below `%LOCALAPPDATA%\ScrapMechanicSaveEditor\Backups`. Restoring a version first archives the current target again, giving the restore operation its own recovery point. These archives are never placed below `User\...\Save`, so Scrap Mechanic will not list them as worlds.
-
-Offline quest completion updates the quest manager's completed list, removes active quest objects and tracked references, and unlocks known schematic rewards. It cannot replay live scripted world events, Steam achievements, physical item rewards, or automatic next-quest activation. Those limitations are shown beside the quest controls.
-
-Clothing is not stored in a world database. It lives in the Steam user's global binary `unlock` profile. The editor verifies the file's Steam-ID-bound CRC-32 checksum and creates a backup before applying selected clothing.
-
-Inventory slots use UUIDs plus metadata and quantity. Existing tool instances may safely have their quantity changed, but the editor will not fabricate a tool instance from a catalogue UUID because tools also require a corresponding `Tool` table record.
-
-The detailed map is reconstructed from the save's generated terrain cell grid and a version-matched top-down atlas. Player-built creations are deliberately not marked: a single loose block is technically a creation, which makes that layer noisy and misleading.
-
-The included atlas and interface imagery are derived from locally installed Scrap Mechanic assets. Scrap Mechanic and all game artwork are property of Axolot Games. This project is unofficial and is not affiliated with or endorsed by Axolot Games.
-
-## Support and feedback
-
-Read [SUPPORT.md](SUPPORT.md) before reporting a problem. Bug reports are most useful when they include the editor version, game version, steps to reproduce, and the log at `%LOCALAPPDATA%\ScrapMechanicSaveEditor\editor.log`. Never post a private save publicly unless you are comfortable sharing everything stored in it.
-
-Discord: user ID `638802769393745950`<br>
-Support development: [buymeacoffee.com/mrboxik](https://www.buymeacoffee.com/mrboxik)
+Python 3.11+ is required for source use. See [development and build instructions](docs/DEVELOPMENT.md)
+and [contributing](docs/CONTRIBUTING.md). Ready-made binaries belong in Releases,
+not the source tree.
 
 ## License
 
-Copyright © 2026 MrBoxik. Source code is available under the [Custom Non-Commercial License](LICENSE). Personal and educational use with attribution is allowed; commercial use requires prior written permission. Scrap Mechanic assets remain subject to their owners' rights.
+By **MrBoxik**. Personal and non-commercial use with attribution is allowed
+under the [Custom Non-Commercial License](LICENSE). Commercial use requires
+prior written permission.
+
+Scrap Mechanic and its artwork belong to Axolot Games and their respective
+owners. This unofficial project is not affiliated with or endorsed by Axolot
+Games. See [third-party notices](docs/THIRD_PARTY_NOTICES.md).

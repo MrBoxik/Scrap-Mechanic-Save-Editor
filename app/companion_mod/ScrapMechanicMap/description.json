@@ -1,0 +1,7 @@
+{
+  "description": "A seed-safe Survival Custom Game with an in-game exploration minimap and full map. Every world uses its own generated terrain and stores discovery progress in that save. Select the Map Tool: primary use opens or closes the map, secondary use changes the map range, and Escape closes it. No launcher, editor cache, fixed seed, or external overlay is required.",
+  "localId": "9bf45fa0-6dc8-4f21-9eb7-cdb06f4312c0",
+  "name": "Survival Map Companion",
+  "type": "Custom Game",
+  "version": 1
+}

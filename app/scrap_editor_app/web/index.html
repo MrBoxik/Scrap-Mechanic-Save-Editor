@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scrap Mechanic Save Editor</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="layout-fixes.css">
+  <link rel="stylesheet" href="desktop.css">
+  <link rel="stylesheet" href="consumer.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><img class="brand-mark" src="game-ui/app_icon.ico" alt=""><span><strong>SCRAP MECHANIC</strong><small>SAVE EDITOR</small></span></div>
+      <nav class="main-nav" aria-label="Editor pages">
+        <div class="nav-group">
+          <small>LIBRARY</small>
+          <button data-view="saves"><span>▣</span>Load save</button>
+          <button data-view="backups"><span>↶</span>Backups</button>
+        </div>
+        <div class="nav-group">
+          <small>WORLD EDITOR</small>
+          <button class="active" data-view="inventory"><span>▦</span>Inventory</button>
+          <button data-view="world"><span>♥</span>Player & world</button>
+          <button data-view="services"><span>☁</span>World services</button>
+          <button data-view="unlocks"><span>★</span>Progress & unlocks</button>
+          <button data-view="map"><span>◎</span>World map</button>
+          <button data-view="settings"><span>⚙</span>World settings</button>
+        </div>
+        <div class="nav-group">
+          <small>TOOLS</small>
+          <button data-view="character"><span>♟</span>Character</button>
+          <button data-view="blueprints"><span>▧</span>Blueprints</button>
+          <button data-view="companion"><span>▤</span>Map companion</button>
+        </div>
+      </nav>
+      <div class="sidebar-foot"><span id="connectionDot" class="status-dot"></span><span id="appStatus">Starting local editor…</span></div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <div class="topbar-title"><div class="eyebrow" id="pageEyebrow">PLAYER STORAGE</div><h1 id="pageTitle">Backpack</h1><span id="currentSaveContext">No world loaded</span></div>
+        <div class="top-actions">
+          <span id="dirtyBadge" class="dirty-badge hidden">Unsaved changes</span>
+          <button id="createBackupBtn" class="button ghost" title="Back up the current game file without unsaved editor changes">Back up current save</button>
+          <button id="saveCopyBtn" class="button ghost" title="Store the edited version in the external backup archive without changing the game save">Save edited copy</button>
+          <button id="overwriteBtn" class="button primary" title="Write the staged changes to the game save">Save to game</button>
+        </div>
+      </header>
+
+      <section id="emptyState" class="empty-state hidden">
+        <div class="empty-icon">▣</div><h2>No world save loaded</h2>
+        <p>Choose a Survival, Creative/Sandbox, or Custom Game world. Scrap Mechanic should be closed before writing changes.</p>
+      </section>
+
+      <section id="servicesView" class="view hidden">
+        <div class="panel manager-hero">
+          <div><div class="eyebrow">SURVIVAL SERVICES</div><h2>Weather, tornadoes & registered worlds</h2><p>Edit only service values handled directly by the game's own managers. Elevator, trader, fire, and dungeon internals remain protected.</p></div>
+          <button id="reloadServicesBtn" class="button ghost">Reload service view</button>
+        </div>
+        <div class="service-grid">
+          <article class="panel service-card weather-service-card">
+            <div class="panel-title"><div><div class="eyebrow">WEATHER MANAGER</div><h2>Forecast queue</h2></div><strong id="weatherQueueCount">0</strong></div>
+            <p class="weather-planner-help">Each tile is one quarter of a game day. Click or right-click any tile to change that period.</p>
+            <div id="weatherTimeline" class="weather-timeline"></div>
+            <div class="form-actions weather-planner-actions"><span>Future days stay in order and are padded exactly like WeatherManager.lua.</span><div><button id="addWeatherDayBtn" class="button ghost" type="button">Add future day</button><button id="advanceWeatherBtn" class="button ghost" type="button">Skip current day</button></div></div>
+          </article>
+          <article class="panel service-card tornado-service-card">
+            <div class="panel-title"><div><div class="eyebrow">TORNADO MANAGER</div><h2>Spawn history</h2></div><strong id="tornadoSavedCount">0</strong></div>
+            <div class="service-stat-grid"><div><small>Saved tornadoes</small><strong id="tornadoObjectCount">0</strong></div><div><small>Visited desert cells</small><strong id="tornadoVisitedCount">0</strong></div><div><small>Next internal ID</small><strong id="tornadoNextId">1</strong></div></div>
+            <p class="unlock-warning">Reset removes saved tornado objects and their one-day visited-cell cooldown. The game can create new tornadoes again when eligible desert cells load.</p>
+            <button id="resetTornadoBtn" class="button danger-button" type="button">Reset tornado service</button>
+          </article>
+          <article class="panel service-card world-registry-card">
+            <div class="panel-title"><div><div class="eyebrow">WORLD MANAGER</div><h2>Registered worlds</h2></div><strong id="registeredWorldCount">0</strong></div>
+            <div id="registeredWorldList" class="state-list"></div>
+            <p class="world-card-note">This registry is shown for diagnostics. Repointing world references can orphan players, portals, elevators, and quests, so it is deliberately read-only.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="savesView" class="view hidden">
+        <div class="save-picker-heading panel">
+          <div><div class="eyebrow">ALL WORLD MODES</div><h2>Choose a save to edit</h2><p>Survival, Creative/Sandbox, and Custom Game databases detected from every local Scrap Mechanic user.</p></div>
+          <button id="browseSaveBtn" class="button primary">Browse for a save</button>
+        </div>
+        <article class="panel companion-home-card">
+          <div><div class="eyebrow">PLAY WITH THE LIVE MAP</div><h2>Launch Scrap Mechanic + Map Companion</h2><p>Starts the game normally through Steam with the external live minimap and M-key world map.</p></div>
+          <button id="launchMapCompanionHomeBtn" class="button primary" type="button">▶ Launch with Map Companion</button>
+        </article>
+        <div id="savePickerGrid" class="save-picker-grid"></div>
+      </section>
+
+      <section id="backupsView" class="view hidden">
+        <div class="backup-layout">
+          <article class="panel backup-hero">
+            <div><div class="eyebrow">EXTERNAL ARCHIVE</div><h2>External backup location</h2><p>Backups are stored outside Scrap Mechanic's <code>User\...\Save</code> folders, so the game cannot list them as playable worlds.</p></div>
+            <div class="backup-folder-row"><code id="backupRootPath"></code><button id="openBackupFolderBtn" class="button ghost">Open folder</button></div>
+            <div class="backup-action-row"><button id="backupCurrentBtn" class="button primary">Back up current game file</button><small>This captures the file on disk. Unsaved editor changes are not included.</small></div>
+          </article>
+          <article class="panel backup-archive-panel">
+            <div class="panel-title"><div><div class="eyebrow">VERSION HISTORY</div><h2 id="backupArchiveCount">Backups</h2></div><button id="refreshBackupsBtn" class="button ghost">Refresh</button></div>
+            <div id="backupArchiveList" class="backup-list"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="inventoryView" class="view inventory-view">
+        <div class="inventory-layout">
+          <div class="backpack-column">
+            <article class="backpack-panel">
+              <div class="backpack-heading">
+                <div class="backpack-title"><img class="backpack-game-icon" src="game-ui/gui_inventory_icon_backpack.png" alt=""><span>BACKPACK</span></div>
+                <label class="container-picker">Container <select id="containerSelect"></select></label>
+              </div>
+              <div id="backpackGrid" class="slot-grid backpack-grid" aria-label="Backpack slots"></div>
+              <div class="backpack-help">Click to select · right-click to edit or clear · drag an item onto a slot</div>
+            </article>
+            <div class="hotbar-wrap"><div class="eyebrow">HOTBAR</div><div id="hotbarGrid" class="slot-grid hotbar-grid" aria-label="Hotbar slots"></div></div>
+          </div>
+
+          <aside class="catalog-panel">
+            <div class="catalog-head">
+              <div><div class="eyebrow">GAME ITEM CATALOGUE</div><h2>Choose an item</h2></div>
+              <div id="catalogCount" class="catalog-count">0 items</div>
+            </div>
+            <label class="search-box"><span>⌕</span><input id="catalogSearch" type="search" placeholder="Search items or UUIDs…"></label>
+            <div id="categoryTabs" class="category-tabs">
+              <button class="active" data-category="All">All</button><button data-category="Tools">Tools</button>
+              <button data-category="Blocks">Blocks</button><button data-category="Interactive">Interactive</button>
+              <button data-category="Parts">Parts</button><button data-category="Consumable">Consumable</button>
+            </div>
+            <div id="selectedItemBar" class="selected-item-bar"><span>Select a slot and item.</span><button id="placeItemBtn" disabled>Put in slot</button></div>
+            <div id="catalogGrid" class="catalog-grid"></div>
+            <div class="catalog-loader"><button id="loadAllBtn" class="button ghost">Load every matching item</button><span id="catalogProgress"></span></div>
+            <div id="catalogSentinel"></div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="mapView" class="view hidden">
+        <div class="map-layout">
+          <aside class="map-search-panel">
+            <div class="eyebrow">MAP LOCATIONS</div><h2>Find a destination</h2>
+            <label class="search-box"><span>⌕</span><input id="mapSearch" type="search" placeholder="Search map locations…"></label>
+            <div id="mapFilters" class="map-filters">
+              <button class="active" data-kind="Places">All places</button><button data-kind="Player">You</button>
+              <button data-kind="Quest">Quests</button><button data-kind="Station">Stations</button>
+              <button data-kind="Warehouse">Warehouses</button><button data-kind="Packing station">Packing</button>
+              <button data-kind="Lab / dungeon">Labs & dungeons</button><button data-kind="Landmark">Landmarks</button>
+            </div>
+            <div id="mapResultCount" class="map-match-count"></div>
+            <p id="mapViewHelp" class="map-hover-help" hidden></p>
+            <div id="mapSelection" class="map-selection hidden">
+              <img id="mapSelectionImage" alt="">
+              <div><span>SELECTED LOCATION</span><strong id="mapSelectionName"></strong><small id="mapSelectionNote">Original isometric preview from the installed game.</small><button id="openSelected3d" class="map-open-3d hidden" type="button">Focus in 3D world</button></div>
+            </div>
+            <div id="mapResults" class="map-location-list" aria-label="Map locations"></div>
+          </aside>
+          <div id="mapViewport" class="map-viewport">
+            <div id="mapStage" class="map-stage"><img id="mapImage" class="map-image" alt="Decoded Scrap Mechanic Survival terrain"></div>
+            <canvas id="mapIsoCanvas" class="map-iso-canvas hidden" aria-label="Native isometric Scrap Mechanic terrain"></canvas>
+            <canvas id="map3dCanvas" class="map-3d-canvas hidden" aria-label="Flyable complete 3D world geometry"></canvas>
+            <div id="mapMarkers" class="map-markers"></div>
+            <div class="map-controls"><button id="mapViewToggle" class="map-view-toggle" type="button" aria-pressed="true" title="Show the fast generated 2D map">◆ 2D map</button><button id="mapMeshToggle" class="map-view-toggle mesh-toggle" type="button" aria-pressed="false" title="Load the complete generated world in 3D">◇ 3D world</button><button id="mapBuildDetail" class="map-detail-button hidden" type="button" title="Build and cache a detailed 2D capture from the installed game assets">Build HD map</button><button id="mapWorld3dToggle" class="hidden" type="button" aria-hidden="true">Complete world</button><button id="zoomOut" title="Zoom out">−</button><strong id="zoomLabel">100%</strong><button id="zoomIn" title="Zoom in">+</button><button id="fitMap">Fit</button></div>
+            <div id="mapLoading" class="map-loading">Building exact world map…</div>
+            <button id="cancelMapBuild" class="button ghost map-build-cancel hidden" type="button">Cancel HD build</button>
+            <div id="map3dStatus" class="map-3d-status hidden"><strong>COMPLETE 3D WORLD</strong><span id="map3dStatusText">Preparing the world.</span><div><i id="map3dProgress"></i></div><small>Drag to look · right-drag to pan · WASD flies camera · Q/E turn · Space/Ctrl up/down · Shift boosts · Wheel moves</small></div>
+            <div id="mapCoords" class="map-coords">Cell —, —</div>
+            <div id="mapTooltip" class="map-tooltip hidden"><img id="mapTooltipImage" alt=""><div id="mapTooltipKind"></div><strong id="mapTooltipName"></strong><small id="mapTooltipCell"></small></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="worldView" class="view hidden">
+        <div class="world-state-grid">
+          <form id="playerStatusForm" class="panel world-card">
+            <div class="panel-title"><div><div class="eyebrow">PLAYER STATUS</div><h2>Health & oxygen</h2></div><select id="playerStateSelect"></select></div>
+            <div id="playerIdentity" class="world-card-note"></div>
+            <div class="form-grid">
+              <label>Health<input id="playerHp" type="number" min="0" max="10000" step="0.1"></label>
+              <label>Maximum health<input id="playerMaxHp" type="number" min="1" max="10000" step="0.1"></label>
+              <label>Oxygen<input id="playerBreath" type="number" min="0" max="10000" step="0.1"></label>
+              <label>Maximum oxygen<input id="playerMaxBreath" type="number" min="1" max="10000" step="0.1"></label>
+            </div>
+            <div class="check-row"><label><input id="playerConscious" type="checkbox"> Conscious / alive</label><label><input id="playerRevival" type="checkbox"> Has revival item</label></div>
+            <div class="form-actions"><span>Player status is stored separately from the backpack.</span><button class="button primary" type="submit">Apply player</button></div>
+          </form>
+
+          <form id="playerPerksForm" class="panel world-card">
+            <div class="panel-title"><div><div class="eyebrow">FOOD BUFFS</div><h2>Player perks</h2></div></div>
+            <div class="check-grid perk-grid">
+              <label><input id="perkBonusHealth" type="checkbox"> Bonus Health <small>+25 maximum health</small></label>
+              <label><input id="perkHammerSpeed" type="checkbox"> Hammer Speed</label>
+              <label><input id="perkFallProtection" type="checkbox"> Fall Protection</label>
+              <label><input id="perkHighJump" type="checkbox"> High Jump</label>
+            </div>
+            <p class="world-card-note">These temporary perks are normally granted by special food and are cleared when the player dies.</p>
+            <div class="form-actions"><span>Bonus Health adjusts current and maximum health safely.</span><button class="button primary" type="submit">Apply perks</button></div>
+          </form>
+
+          <article class="panel world-card recovery-card">
+            <div class="panel-title"><div><div class="eyebrow">PLAYER RECOVERY</div><h2>Position, beds & stuck states</h2></div></div>
+            <div class="form-grid coordinate-grid">
+              <label>World X<input id="playerX" type="number" step="0.125"></label>
+              <label>World Y<input id="playerY" type="number" step="0.125"></label>
+              <label>World Z<input id="playerZ" type="number" step="0.125"></label>
+            </div>
+            <div class="recovery-actions">
+              <button id="teleportPlayerBtn" class="button primary" type="button">Apply position</button>
+              <button id="teleportTemporaryBedBtn" class="button ghost" type="button">Move to placed bed</button>
+              <button id="teleportPermanentBedBtn" class="button ghost" type="button">Move to permanent bed</button>
+              <button id="resetTemporaryBedBtn" class="button ghost" type="button">Forget placed bed</button>
+              <button id="repairPlayerBtn" class="button ghost" type="button">Clear chemical/oil stuck state</button>
+            </div>
+            <div id="respawnPointInfo" class="world-card-note"></div>
+            <div id="deathBagList" class="state-list"></div>
+          </article>
+
+          <article class="panel world-card host-card">
+            <div class="panel-title"><div><div class="eyebrow">WORLD HOST</div><h2>Markers & creation aggro</h2></div><strong id="deathMarkerCount">0</strong></div>
+            <label class="toggle-line"><input id="aggroCreations" type="checkbox"> Bots can target player-built creations</label>
+            <div class="recovery-actions"><button id="applyAggroBtn" class="button primary" type="button">Apply host setting</button><button id="clearDeathMarkersBtn" class="button ghost" type="button">Clear death history</button></div>
+          </article>
+
+          <article class="panel world-card beacon-card">
+            <div class="panel-title"><div><div class="eyebrow">PLAYER BEACONS</div><h2>Icons & colors</h2></div><strong id="beaconEditorCount">0</strong></div>
+            <p class="world-card-note">Changes are written to both the beacon manager and the physical beacon so they remain synchronized.</p>
+            <div id="beaconEditorList" class="beacon-editor-list"></div>
+          </article>
+
+          <article class="panel world-card raid-card">
+            <div class="panel-title"><div><div class="eyebrow">FARM ATTACKS</div><h2>Active raids</h2></div><strong id="raidCount">0</strong></div>
+            <div id="raidList" class="state-list"></div>
+            <button id="clearRaidsBtn" class="button danger-button" type="button">Cancel every active raid</button>
+          </article>
+
+          <form id="progressionForm" class="panel world-card">
+            <div class="panel-title"><div><div class="eyebrow">WORLD PROGRESSION</div><h2>Unlock state</h2></div></div>
+            <div class="form-grid">
+              <label>Seed tier<input id="seedTier" type="number" min="0" max="3"></label>
+              <label>Vault total<input id="vaultTotal" type="number" min="0" max="1000000"></label>
+            </div>
+            <div class="check-row"><label><input id="consoleUnlocked" type="checkbox"> Warehouse console unlocked</label><label><input id="beaconCrafted" type="checkbox"> Beacon crafted</label></div>
+            <div id="progressionInfo" class="world-card-note"></div>
+            <div class="form-actions"><span>Only independent progression values are editable.</span><button class="button primary" type="submit">Apply progression</button></div>
+          </form>
+
+          <form id="worldTimeForm" class="panel world-card">
+            <div class="panel-title"><div><div class="eyebrow">DAY CYCLE</div><h2>World time</h2></div></div>
+            <div class="form-grid">
+              <label>Day<input id="worldDay" type="number" min="0" max="1000000"></label>
+              <label>Hour (0–23.99)<input id="worldHour" type="number" min="0" max="23.99" step="0.25"></label>
+            </div>
+            <div class="check-row"><label><input id="worldTimeProgress" type="checkbox"> Time continues normally</label></div>
+            <div class="form-actions"><span>Turn off “Time continues normally” to freeze the selected time.</span><button class="button primary" type="submit">Apply world time</button></div>
+          </form>
+
+          <article class="panel world-card quest-card">
+            <div class="panel-title"><div><div class="eyebrow">QUEST STATE</div><h2>Active & completed quests</h2></div></div>
+            <p class="world-card-note">Use the Quests & unlocks page to inspect all game quests and mark them complete.</p>
+            <div class="quest-columns"><div><h3>Active</h3><div id="activeQuestList" class="state-list"></div></div><div><h3>Completed</h3><div id="completedQuestList" class="state-list"></div></div></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="characterView" class="view hidden">
+        <div class="panel manager-hero">
+          <div><div class="eyebrow">GLOBAL STEAM USER PROFILE</div><h2>Character appearance</h2><p>Edit the nine equipment slots stored in the global character profile. Locked wearable clothing is hidden until it is unlocked.</p></div>
+          <div class="character-actions"><button id="reloadCharacterBtn" class="button ghost">Reload profile</button><button id="saveCharacterBtn" class="button primary" disabled>Apply character</button></div>
+        </div>
+        <div class="panel character-gender"><label>Character model<select id="characterGender"><option value="0">Male</option><option value="1">Female</option></select></label><code id="characterProfilePath"></code></div>
+        <div id="characterSlotGrid" class="character-slot-grid"></div>
+      </section>
+
+      <section id="blueprintsView" class="view hidden">
+        <div class="panel manager-hero">
+          <div><div class="eyebrow">LOCAL CREATION LIBRARY</div><h2>Blueprint manager</h2><p>Rename, describe, duplicate, archive and import creations without touching a world database.</p></div>
+          <div class="manager-actions"><button id="openBlueprintFolderBtn" class="button ghost">Open folder</button><button id="openBlueprintArchiveBtn" class="button ghost">Open archives</button><button id="importBlueprintBtn" class="button primary">Import ZIP</button></div>
+        </div>
+        <div id="blueprintSummary" class="panel manager-summary"></div>
+        <div id="blueprintGrid" class="manager-grid blueprint-grid"></div>
+      </section>
+
+      <section id="unlocksView" class="view hidden">
+        <div class="panel unlocks-heading">
+          <div><div class="eyebrow">GAME PROGRESSION</div><h2>Quests, schematics & collections</h2><p>Loaded directly from the installed game data and matched to this save.</p></div>
+          <div id="unlockTabs" class="unlock-tabs">
+            <button class="active" data-unlock-tab="quests">Quests</button>
+            <button data-unlock-tab="recipes">Craftbot</button>
+            <button data-unlock-tab="logs">Logbook</button>
+            <button data-unlock-tab="clothing">Clothing</button>
+          </div>
+        </div>
+
+        <article id="questsUnlockPane" class="panel unlock-pane">
+          <div class="unlock-pane-head"><div><div class="eyebrow">ALL GAME QUESTS</div><h2 id="questUnlockCount">Quests</h2></div><button id="completeAllQuestsBtn" class="button danger-button">Mark every quest complete</button></div>
+          <div class="unlock-toolbar"><label class="search-box"><span>⌕</span><input id="questUnlockSearch" type="search" placeholder="Search quest name or ID…"></label><select id="questStatusFilter"><option value="all">All statuses</option><option value="active">Active</option><option value="not-started">Not started</option><option value="completed">Completed</option></select></div>
+          <p class="unlock-warning">Editor completion updates the quest log, removes active quest objects, and unlocks known schematic rewards. It cannot replay scripted world events, item rewards, achievements, or automatically start the next quest.</p>
+          <div id="questUnlockList" class="unlock-list"></div>
+        </article>
+
+        <article id="recipesUnlockPane" class="panel unlock-pane hidden">
+          <div class="unlock-pane-head"><div><div class="eyebrow">CRAFTBOT RECIPES</div><h2 id="recipeUnlockCount">Schematics</h2></div><button id="unlockAllRecipesBtn" class="button primary">Unlock all Craftbot recipes</button></div>
+          <div class="unlock-toolbar"><label class="search-box"><span>⌕</span><input id="recipeUnlockSearch" type="search" placeholder="Search blocks, parts, or UUID…"></label><select id="recipeStatusFilter"><option value="all">All recipes</option><option value="locked">Locked only</option><option value="unlocked">Unlocked only</option></select></div>
+          <div id="recipeUnlockList" class="unlock-list recipe-unlock-list"></div>
+        </article>
+
+        <article id="logsUnlockPane" class="panel unlock-pane hidden">
+          <div class="unlock-pane-head"><div><div class="eyebrow">LOGBOOK COLLECTION</div><h2 id="logUnlockCount">Logs</h2></div><button id="unlockAllLogsBtn" class="button primary">Unlock every log</button></div>
+          <div id="logUnlockList" class="unlock-list"></div>
+        </article>
+
+        <article id="clothingUnlockPane" class="panel unlock-pane hidden">
+          <div class="unlock-pane-head"><div><div class="eyebrow">GLOBAL STEAM USER PROFILE</div><h2 id="clothingUnlockCount">Clothing</h2><small id="clothingProfilePath"></small></div><div class="unlock-actions"><button id="resetClothingBtn" class="button ghost" disabled>Undo staged</button><button id="stageAllClothingBtn" class="button ghost">Unlock all</button><button id="saveClothingBtn" class="button primary" disabled>Apply to profile</button></div></div>
+          <div class="unlock-toolbar"><label class="search-box"><span>⌕</span><input id="clothingUnlockSearch" type="search" placeholder="Search outfits…"></label><select id="clothingStatusFilter"><option value="all">All clothing</option><option value="locked">Locked only</option><option value="unlocked">Unlocked only</option></select></div>
+          <p class="unlock-warning">Clothing is global across every world for this Steam user. Unlock or lock individual pieces, then apply once. The current binary <code>unlock</code> profile is archived outside the game folders first.</p>
+          <div id="clothingUnlockList" class="unlock-list clothing-unlock-list"></div>
+        </article>
+      </section>
+
+      <section id="companionView" class="view hidden">
+        <div class="settings-layout companion-page-layout">
+          <article class="panel companion-launch-card">
+            <div class="panel-title"><div><div class="eyebrow">PLAY WITH THE LIVE MAP</div><h2>Map Companion launcher</h2></div><span class="companion-ready-dot"></span></div>
+            <p>Starts Scrap Mechanic normally through Steam and attaches the external minimap. It does not enable developer mode or modify game files.</p>
+            <button id="launchMapCompanionBtn" class="button primary companion-launch-button" type="button">▶ Launch Scrap Mechanic + Map Companion</button>
+            <small>Survival worlds only. Settings and exploration are kept between sessions.</small>
+          </article>
+          <form id="companionSettingsForm" class="panel settings-form companion-settings-form">
+            <div class="panel-title"><div><div class="eyebrow">IN-GAME MINIMAP</div><h2>Appearance & responsiveness</h2></div></div>
+            <div class="form-grid">
+              <label>Minimap size<input id="companionSize" type="number" min="176" max="420" step="4"><small>Pixels; 280 is the polished default.</small></label>
+              <label>Visible world area<input id="companionWorldSpan" type="number" min="320" max="1800" step="20"><small>Lower values zoom in; higher values show more terrain.</small></label>
+              <label>Orientation<select id="companionOrientation"><option value="map-up">North/map stays up</option><option value="player-up">Player direction stays up</option></select></label>
+              <label>Shape<select id="companionShape"><option value="square">Rounded square</option><option value="circle">Circle</option></select></label>
+              <label>Frame<select id="companionBorder"><option value="mechanic">Scrap Mechanic</option><option value="compact">Compact</option><option value="none">No frame</option></select></label>
+              <label>Live update rate<input id="companionUpdateHz" type="number" min="10" max="60" step="1"><small>60 Hz keeps the player arrow fluid. Lower it only on slower PCs.</small></label>
+              <label>Left margin<input id="companionMarginX" type="number" min="0" max="240" step="1"></label>
+              <label>Top margin<input id="companionMarginY" type="number" min="0" max="240" step="1"></label>
+              <label class="check-field"><input id="companionCompass" type="checkbox"><span>Show N / E / S / W</span></label>
+              <label class="check-field"><input id="companionKeyHint" type="checkbox"><span>Show M map hint</span></label>
+              <label class="check-field"><input id="companionFog" type="checkbox"><span>Enable exploration fog</span></label>
+              <label>Reveal shape<select id="companionRevealShape"><option value="directional">Directional view</option><option value="circle">Even circle</option></select><small>Directional reveals ahead of you; circle reveals equally in every direction.</small></label>
+              <label>Discovery radius<input id="companionFogRadius" type="number" min="96" max="512" step="16"><small>World units revealed around the player.</small></label>
+            </div>
+            <div class="form-actions"><span id="companionSettingsPath">Saved outside the game folders.</span><button class="button primary" type="submit">Save minimap settings</button></div>
+          </form>
+          <article class="panel companion-preview-card">
+            <div class="panel-title"><div><div class="eyebrow">LIVE PREVIEW</div><h2>Minimap appearance</h2></div><output id="companionPreviewSize">280 px</output></div>
+            <div id="companionPreviewFrame" class="companion-preview-frame">
+              <iframe id="companionPreview" src="companion_minimap.html?preview=1" title="Minimap preview"></iframe>
+            </div>
+            <button id="companionPreviewMap" class="button ghost" type="button"><kbd>M</kbd> Map preview</button>
+          </article>
+          <article class="panel companion-feature-card"><div class="eyebrow">DISCOVERY & WAYPOINTS</div><h2>One shared map state</h2><p>Explored circles and discovered POIs are stored outside game saves. Open the in-game map to choose which location categories appear on the full map and minimap independently.</p></article>
+        </div>
+      </section>
+
+      <dialog id="companionPreviewDialog" class="companion-preview-dialog"><button id="closeCompanionPreview" class="button ghost" type="button" aria-label="Close map preview">Close preview</button><iframe id="companionFullPreview" title="World map preview"></iframe></dialog>
+
+      <section id="settingsView" class="view hidden">
+        <div class="settings-layout">
+          <form id="settingsForm" class="panel settings-form">
+            <div class="panel-title"><div><div class="eyebrow">SURVIVAL RULES</div><h2>Difficulty & session</h2></div></div>
+            <div class="form-grid">
+              <label>Difficulty<select id="difficulty"><option value="0">Easy</option><option value="1">Normal</option></select></label>
+              <label>Multiplayer slots<input id="multiplayer" type="number" min="0" max="3"></label>
+              <label>Physics quality<input id="physicsQuality" type="number" min="0" max="10"></label>
+              <div class="advanced-settings-heading"><strong>Advanced values</strong><small>Change these only when you know the exact value you need.</small></div>
+              <label>World seed<input id="seed" type="number"></label>
+              <label>Game flags<input id="flags" type="number"></label>
+              <label>Game tick<input id="gametick" type="number"></label>
+            </div>
+            <div class="form-actions"><span>Apply stages changes. Use Save edited copy or Save to game to write them.</span><button class="button primary" type="submit">Apply settings</button></div>
+          </form>
+          <div class="settings-side-stack">
+            <article class="panel installation-card">
+              <div class="eyebrow">INSTALLATION CHECK</div>
+              <h2>Ready on this PC</h2>
+              <div id="installationChecks" class="installation-checks" aria-live="polite"></div>
+              <p class="installation-note">The Mod Tool is optional. It is used only for Custom Game / Workshop development, not for editing saves or the external Map Companion.</p>
+            </article>
+            <article class="panel cache-card">
+              <div class="eyebrow">PERFORMANCE CACHE</div>
+              <h2>Map & 3D files</h2>
+              <strong id="mapCacheSummary">Calculating cache size…</strong>
+              <p id="mapCacheLimit">Old rendering files are cleaned automatically when the cache reaches its limit.</p>
+              <code id="mapCachePath"></code>
+              <button id="clearMapCacheBtn" class="button ghost" type="button">Clear map cache</button>
+            </article>
+            <article class="panel safety-card"><div class="eyebrow">SAFE WRITES</div><h2>External backups are automatic</h2><p>“Save to game” first archives the untouched database under <code>%LOCALAPPDATA%\ScrapMechanicSaveEditor\Backups</code>. No backup is placed in the game's save list.</p></article>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="contextMenu" class="context-menu hidden"><button data-action="change">Change item</button><button data-action="quantity">Set quantity</button><button data-action="clear" class="danger">Clear slot</button></div>
+  <dialog id="slotDialog"><form id="slotForm"><button type="button" class="dialog-close" data-close-dialog>×</button><div class="eyebrow">EDIT SLOT</div><h2 id="dialogTitle">Slot</h2><div class="dialog-item"><div id="dialogIcon"></div><div><strong id="dialogItemName">Empty</strong><small id="dialogUuid">—</small></div></div><label>Item UUID<input id="dialogUuidInput" autocomplete="off"></label><label>Quantity<input id="dialogQuantity" type="number" min="0" max="65535"></label><div class="dialog-actions"><button type="button" data-close-dialog class="button ghost">Cancel</button><button id="dialogSave" type="submit" class="button primary">Apply</button></div></form></dialog>
+  <dialog id="weatherPeriodDialog"><form id="weatherPeriodForm"><button type="button" class="dialog-close" data-close-weather-dialog>×</button><div class="eyebrow">FORECAST QUEUE</div><h2 id="weatherPeriodTitle">Edit weather period</h2><input id="weatherPeriodIndex" type="hidden"><label>Condition<select id="weatherPeriodCondition"></select></label><p>Changes are staged with the rest of the save. Use Save to game when the forecast is ready.</p><div class="dialog-actions"><button type="button" data-close-weather-dialog class="button ghost">Cancel</button><button type="submit" class="button primary">Apply condition</button></div></form></dialog>
+  <dialog id="blueprintDialog"><form id="blueprintForm"><button type="button" class="dialog-close" data-close-blueprint-dialog>×</button><div class="eyebrow">EDIT LOCAL BLUEPRINT</div><h2 id="blueprintDialogTitle">Blueprint</h2><input id="blueprintDialogId" type="hidden"><label>Name<input id="blueprintName" maxlength="120" required></label><label>Description<textarea id="blueprintDescription" maxlength="2000" rows="5"></textarea></label><div class="dialog-actions"><button type="button" data-close-blueprint-dialog class="button ghost">Cancel</button><button type="submit" class="button primary">Save metadata</button></div></form></dialog>
+  <div id="toastRegion" class="toast-region" aria-live="polite"></div>
+  <script src="companion_waypoints.js"></script>
+  <script src="map3d.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

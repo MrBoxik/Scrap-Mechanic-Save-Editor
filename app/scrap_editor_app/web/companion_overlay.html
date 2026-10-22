@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Scrap Mechanic World Map</title>
+  <link rel="stylesheet" href="companion_overlay.css">
+</head>
+<body>
+  <main id="mapViewport" aria-label="Generated Scrap Mechanic world map">
+    <div id="mapStage">
+      <img id="mapImage" alt="Generated top-down world map" draggable="false">
+      <div id="detailTiles" aria-hidden="true"></div>
+      <canvas id="fogOverlay" aria-hidden="true"></canvas>
+    </div>
+    <div id="markers" aria-label="Map locations"></div>
+  </main>
+  <header>
+    <div><small>SCRAP MECHANIC MAP COMPANION</small><strong id="worldName">Preparing world…</strong></div>
+    <nav>
+      <button id="zoomOut" type="button" aria-label="Zoom out">−</button>
+      <output id="zoomValue">Fit</output>
+      <button id="zoomIn" type="button" aria-label="Zoom in">+</button>
+      <button id="fitWorld" type="button">Fit world</button>
+      <button id="centerPlayer" type="button">My position</button>
+      <button id="closeMap" class="close" type="button" title="Close map (M / Esc)">Close</button>
+    </nav>
+  </header>
+  <aside id="legend" hidden>
+    <label class="location-search"><span>LOCATIONS</span><input id="locationSearch" type="search" placeholder="Search discovered locations" aria-label="Search discovered locations"></label>
+    <small id="locationCount"></small>
+    <div class="legend-tabs"><strong>MAP LEGEND</strong><span>SHOW ON</span></div>
+    <div id="legendRows"></div>
+  </aside>
+  <aside id="mapSidebar" hidden>
+    <section id="waypointDetails" class="waypoint-details empty">
+      <div class="sidebar-heading">SELECTED WAYPOINT</div>
+      <div id="waypointDetailsIcon" class="waypoint-details-icon"></div>
+      <strong id="waypointDetailsName">Select a marker</strong>
+      <span id="waypointDetailsType">No location selected</span>
+      <img id="waypointDetailsPreview" class="waypoint-details-preview" alt="" hidden>
+      <dl><div><dt>Cell</dt><dd id="waypointDetailsCell">—</dd></div><div><dt>World position</dt><dd id="waypointDetailsWorld">—</dd></div><div><dt>Distance</dt><dd id="waypointDetailsDistance">—</dd></div></dl>
+    </section>
+    <form id="quickSettings">
+      <div class="sidebar-heading">MINIMAP SETTINGS</div>
+      <label>Visible area <input id="quickWorldSpan" type="range" min="320" max="1800" step="20"><output id="quickWorldSpanValue"></output></label>
+      <label>Discovery radius <input id="quickFogRadius" type="range" min="96" max="512" step="16"><output id="quickFogRadiusValue"></output></label>
+      <label>Orientation <select id="quickOrientation"><option value="map-up">North up</option><option value="player-up">Player up</option></select></label>
+      <label>Minimap shape <select id="quickShape"><option value="square">Rounded square</option><option value="circle">Circle</option></select></label>
+      <label>Frame <select id="quickBorder"><option value="mechanic">Scrap Mechanic</option><option value="compact">Compact</option><option value="none">None</option></select></label>
+      <label>Reveal shape <select id="quickRevealShape"><option value="directional">Directional view</option><option value="circle">Even circle</option></select></label>
+      <label class="quick-check"><input id="quickFog" type="checkbox"><span>Exploration fog</span></label>
+      <label class="quick-check"><input id="quickCompass" type="checkbox"><span>Compass</span></label>
+      <label class="quick-check"><input id="quickKeyHint" type="checkbox"><span>M key hint</span></label>
+      <small id="quickSettingsStatus">Changes apply immediately.</small>
+    </form>
+  </aside>
+  <div id="waypointTooltip" role="tooltip" hidden><strong></strong><span></span></div>
+  <aside id="status"><strong>WORLD MAP</strong><span id="statusText">Finding the active save…</span><i><b id="progress"></b></i></aside>
+  <div id="error" hidden></div>
+  <script src="companion_preview.js"></script>
+  <script src="companion_waypoints.js"></script>
+  <script src="companion_overlay.js"></script>
+</body>
+</html>
